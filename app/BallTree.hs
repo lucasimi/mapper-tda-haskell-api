@@ -1,8 +1,9 @@
 module BallTree where
 
-import Control.Monad
-import Control.Monad.ST
-import Data.STRef
+import Control.Monad    ( forM_, when )
+import Control.Monad.ST ( runST, ST )
+import Data.STRef       ( modifySTRef', newSTRef, readSTRef )
+import Data.Foldable    ( Foldable(toList) )
 
 import qualified Data.Set as S
 import qualified Data.Vector as V
@@ -17,10 +18,9 @@ data BallTree a
     | Node { center :: a
            , radius :: Float
            , left   :: BallTree a
-           , right  :: BallTree a
-           }
+           , right  :: BallTree a }
 
-data WithDist a = WithDist a Float 
+data WithDist a = WithDist a Float
 
 instance Eq (WithDist a) where
     WithDist _ x == WithDist _ y = x == y
@@ -28,35 +28,34 @@ instance Eq (WithDist a) where
 instance Ord (WithDist a) where
     WithDist _ x <= WithDist _ y = x <= y
 
-buildBallTree :: V.Vector a -> BallTree a
-buildBallTree vec = undefined
-
-leq :: a -> a -> Bool
-leq = undefined
-
 updateDistST :: VM.MVector s (WithDist a) -> Metric a -> ST s ()
 updateDistST vec (Metric dist) = do
     (WithDist p _) <- VM.read vec 0
     VM.iforM_ vec (\i (WithDist x _) -> do
         VM.write vec i (WithDist x (dist p x)))
-    
+
+buildBallTree :: Traversable m => m a -> Metric a -> BallTree a
+buildBallTree vec dist = runST $ do
+    vec' <- V.thaw $ V.fromList $ toList $ fmap (`WithDist` 0.0) vec
+    buildBallTreeST vec' dist
+
 buildBallTreeST :: VM.MVector s (WithDist a) -> Metric a -> ST s (BallTree a)
-buildBallTreeST vec (Metric dist) =
+buildBallTreeST vec dist =
     let n = VM.length vec
         m = n `div` 2
     in if n == 0
         then return Empty
     else if n == 1
         then do
-            (WithDist x _) <- VM.read vec 0
+            WithDist x _ <- VM.read vec 0
             return $ Leaf { points = S.singleton x }
         else do
             p            <- VM.read vec 0
-            updateDistST vec (Metric dist)
+            updateDistST vec dist
             quickSelectST vec m
             WithDist c r <- VM.read vec m
-            lft          <- buildBallTreeST (VM.slice 0 m vec) (Metric dist)
-            rgt          <- buildBallTreeST (VM.slice m (n - m) vec) (Metric dist)
+            lft          <- buildBallTreeST (VM.slice 0 m vec) dist
+            rgt          <- buildBallTreeST (VM.slice m (n - m) vec) dist
             return $ Node { center = c
                           , radius = r
                           , left   = lft
@@ -65,6 +64,7 @@ buildBallTreeST vec (Metric dist) =
 -- puts the element at index i in its correct position
 -- returns the new index of the selected element
 pivotST :: Ord a => VM.MVector s a -> Int -> ST s Int
+{-# INLINE pivotST #-}
 pivotST vec i = do
     VM.swap vec 0 i
     p    <- VM.read vec 0
