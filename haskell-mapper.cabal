@@ -25,13 +25,33 @@ executable haskell-mapper
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:    BallTree
+    other-modules:    
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base ^>=4.14.3.0, 
                       containers,
                       vector,
-                      QuickCheck
+                      haskell-mapper-library
     hs-source-dirs:   app
     default-language: Haskell2010
+
+library haskell-mapper-library
+    build-depends:    base ^>=4.14.3.0, 
+                      containers,
+                      vector,
+    hs-source-dirs:   src
+    default-language: Haskell2010
+    exposed-modules:  BallTree
+
+test-suite haskell-mapper-test
+    type:             exitcode-stdio-1.0
+    main-is:          TestSuite.hs
+    hs-source-dirs:   test
+    build-depends:    base ^>=4.14.3.0, 
+                      containers,
+                      vector,
+                      QuickCheck,
+                      haskell-mapper-library
+    default-language: Haskell2010
+

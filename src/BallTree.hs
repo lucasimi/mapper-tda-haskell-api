@@ -14,11 +14,15 @@ newtype Metric a = Metric (a -> a -> Float)
 
 data BallTree a
     = Empty
-    | Leaf { points :: S.Set a }
+    | Leaf { point  :: a }
     | Node { center :: a
            , radius :: Float
            , left   :: BallTree a
            , right  :: BallTree a }
+
+data MetricTree a = MetricTree 
+    { metric :: Metric a
+    , tree   :: BallTree a }
 
 data WithDist a = WithDist a Float
 
@@ -39,6 +43,27 @@ buildBallTree vec dist = runST $ do
     vec' <- V.thaw $ V.fromList $ toList $ fmap (`WithDist` 0.0) vec
     buildBallTreeST vec' dist
 
+ballSearch :: MetricTree a -> a -> Float -> S.Set (WithDist a)
+ballSearch (MetricTree _ Empty) _ _ = S.empty 
+ballSearch (MetricTree (Metric dist) (Leaf x)) p eps = 
+    let d = dist p x
+    in if d <= eps 
+        then S.singleton (WithDist x d) 
+        else S.empty 
+ballSearch (MetricTree (Metric dist) Node { center = c, radius = r, left = x, right = y }) p eps = 
+    let lSearch = if dist p c <= r + eps 
+            then ballSearch (MetricTree (Metric dist) x) p eps
+            else S.empty
+        rSearch = if dist p c + eps > r
+            then ballSearch (MetricTree (Metric dist) y) p eps
+            else S.empty
+    in S.union lSearch rSearch
+
+buildMetricTree :: Traversable m => m a -> Metric a -> MetricTree a
+buildMetricTree vec dist = MetricTree 
+    { metric = dist 
+    , tree   = buildBallTree vec dist }
+
 buildBallTreeST :: VM.MVector s (WithDist a) -> Metric a -> ST s (BallTree a)
 buildBallTreeST vec dist =
     let n = VM.length vec
@@ -48,7 +73,7 @@ buildBallTreeST vec dist =
     else if n == 1
         then do
             WithDist x _ <- VM.read vec 0
-            return $ Leaf { points = S.singleton x }
+            return $ Leaf { point = x }
         else do
             p            <- VM.read vec 0
             updateDistST vec dist
