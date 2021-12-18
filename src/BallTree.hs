@@ -20,7 +20,7 @@ data BallTree a
            , left   :: BallTree a
            , right  :: BallTree a }
 
-data MetricTree a = MetricTree 
+data MetricTree a = MetricTree
     { metric :: Metric a
     , tree   :: BallTree a }
 
@@ -38,20 +38,20 @@ updateDistST vec (Metric dist) = do
     VM.iforM_ vec (\i (WithDist x _) -> do
         VM.write vec i (WithDist x (dist p x)))
 
-buildBallTree :: Traversable m => m a -> Metric a -> BallTree a
+buildBallTree :: Foldable m => m a -> Metric a -> BallTree a
 buildBallTree vec dist = runST $ do
-    vec' <- V.thaw $ V.fromList $ toList $ fmap (`WithDist` 0.0) vec
+    vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
     buildBallTreeST vec' dist
 
 ballSearch :: MetricTree a -> a -> Float -> S.Set (WithDist a)
-ballSearch (MetricTree _ Empty) _ _ = S.empty 
-ballSearch (MetricTree (Metric dist) (Leaf x)) p eps = 
+ballSearch (MetricTree _ Empty) _ _ = S.empty
+ballSearch (MetricTree (Metric dist) (Leaf x)) p eps =
     let d = dist p x
-    in if d <= eps 
-        then S.singleton (WithDist x d) 
-        else S.empty 
-ballSearch (MetricTree (Metric dist) Node { center = c, radius = r, left = x, right = y }) p eps = 
-    let lSearch = if dist p c <= r + eps 
+    in if d <= eps
+        then S.singleton (WithDist x d)
+        else S.empty
+ballSearch (MetricTree (Metric dist) Node { center = c, radius = r, left = x, right = y }) p eps =
+    let lSearch = if dist p c <= r + eps
             then ballSearch (MetricTree (Metric dist) x) p eps
             else S.empty
         rSearch = if dist p c + eps > r
@@ -59,9 +59,9 @@ ballSearch (MetricTree (Metric dist) Node { center = c, radius = r, left = x, ri
             else S.empty
     in S.union lSearch rSearch
 
-buildMetricTree :: Traversable m => m a -> Metric a -> MetricTree a
-buildMetricTree vec dist = MetricTree 
-    { metric = dist 
+buildMetricTree :: Foldable m => m a -> Metric a -> MetricTree a
+buildMetricTree vec dist = MetricTree
+    { metric = dist
     , tree   = buildBallTree vec dist }
 
 buildBallTreeST :: VM.MVector s (WithDist a) -> Metric a -> ST s (BallTree a)
