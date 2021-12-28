@@ -2,15 +2,15 @@ module BallTree where
 
 import Control.Monad    ( forM_, when )
 import Control.Monad.ST ( runST, ST )
-import Data.STRef       ( modifySTRef', newSTRef, readSTRef )
+import Data.STRef       ( modifySTRef', newSTRef, readSTRef, writeSTRef, STRef )
 import Data.Foldable    ( Foldable(toList) )
 
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
-import qualified GHC.Base as VM
+import qualified Data.Map as M
 
-newtype Metric a = Metric (a -> a -> Float)
+import Domain
 
 data BallTree a
     = Empty
@@ -33,39 +33,34 @@ instance Ord (WithDist a) where
     WithDist _ x <= WithDist _ y = x <= y
 
 updateDistST :: VM.MVector s (WithDist a) -> Metric a -> ST s ()
-updateDistST vec (Metric dist) = do
+updateDistST vec dist = do
     (WithDist p _) <- VM.read vec 0
     VM.iforM_ vec (\i (WithDist x _) -> do
         VM.write vec i (WithDist x (dist p x)))
 
-buildBallTree :: Foldable m => m a -> Metric a -> BallTree a
-buildBallTree vec dist = runST $ do
+buildBallTree :: Foldable m => Metric a -> m a -> BallTree a
+buildBallTree dist vec = runST $ do
     vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
-    buildBallTreeST vec' dist
+    buildBallTreeST dist vec'
 
-ballSearch :: MetricTree a -> a -> Float -> S.Set (WithDist a)
-ballSearch (MetricTree _ Empty) _ _ = S.empty
-ballSearch (MetricTree (Metric dist) (Leaf x)) p eps =
+ballSearch :: Metric a -> a -> Float -> BallTree a -> S.Set (WithDist a)
+ballSearch _ _ _ Empty = S.empty
+ballSearch dist p eps (Leaf x) =
     let d = dist p x
     in if d <= eps
         then S.singleton (WithDist x d)
         else S.empty
-ballSearch (MetricTree (Metric dist) Node { center = c, radius = r, left = x, right = y }) p eps =
+ballSearch dist p eps Node { center = c, radius = r, left = x, right = y } =
     let lSearch = if dist p c <= r + eps
-            then ballSearch (MetricTree (Metric dist) x) p eps
+            then ballSearch dist p eps x
             else S.empty
         rSearch = if dist p c + eps > r
-            then ballSearch (MetricTree (Metric dist) y) p eps
+            then ballSearch dist p eps y
             else S.empty
     in S.union lSearch rSearch
 
-buildMetricTree :: Foldable m => m a -> Metric a -> MetricTree a
-buildMetricTree vec dist = MetricTree
-    { metric = dist
-    , tree   = buildBallTree vec dist }
-
-buildBallTreeST :: VM.MVector s (WithDist a) -> Metric a -> ST s (BallTree a)
-buildBallTreeST vec dist =
+buildBallTreeST :: Metric a -> VM.MVector s (WithDist a) -> ST s (BallTree a)
+buildBallTreeST dist vec =
     let n = VM.length vec
         m = n `div` 2
     in if n == 0
@@ -79,8 +74,8 @@ buildBallTreeST vec dist =
             updateDistST vec dist
             quickSelectST vec m
             WithDist c r <- VM.read vec m
-            lft          <- buildBallTreeST (VM.slice 0 m vec) dist
-            rgt          <- buildBallTreeST (VM.slice m (n - m) vec) dist
+            lft          <- buildBallTreeST dist (VM.slice 0 m vec)
+            rgt          <- buildBallTreeST dist (VM.slice m (n - m) vec)
             return $ Node { center = c
                           , radius = r
                           , left   = lft
@@ -116,8 +111,8 @@ quickSelectST vec i = do
 
 -- extras
 
-updateDistST' :: VM.MVector s (WithDist a) -> Metric a -> ST s ()
-updateDistST' vec (Metric dist) = do
+updateDistST' :: Metric a -> VM.MVector s (WithDist a) -> ST s ()
+updateDistST' dist vec = do
     (WithDist p _) <- VM.read vec 0
     forM_ [0..VM.length vec - 1] (\i -> do          -- TODO: compare performace with VM.iforM_ version
         WithDist x _ <- VM.read vec i
