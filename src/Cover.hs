@@ -12,6 +12,8 @@ import qualified Data.Map as M
 
 import Domain
 import BallTree
+import qualified Domain as V
+import Data.Data (Data)
 
 type Label = Int
 
@@ -23,15 +25,15 @@ addLabelST lblRef vec ids = do
         VM.write vec i (lbl:lbls)
     writeSTRef lblRef (lbl + 1)
 
-coverST :: Metric Int -> BallTree Int -> Float -> VM.MVector s [Label] -> ST s Graph
-coverST d bt radius vec = do
+coverST :: Metric Int -> BallTree Int -> SearchAlgorithm -> VM.MVector s [Label] -> ST s Graph
+coverST d bt sa vec = do
     lblRef <- newSTRef 0
     VM.iforM_ vec $ \i ls -> do
         when (null ls) $ do
-            let ids = S.map (\(WithDist x _) -> x) (ballSearch d i radius bt)
+            let ids = getNeighbors d i sa bt
             addLabelST lblRef vec ids
     lbl <- readSTRef lblRef
-    graph <- VM.generate lbl (const (Vertex S.empty []))
+    graph <- VM.generate lbl (const (Vertex S.empty M.empty))
     populateGraphST graph vec
 
 offsetMetric :: Metric a -> V.Vector a -> Metric Int 
@@ -45,17 +47,26 @@ populateGraphST graph vec = do
             VM.write graph l (Vertex (S.insert p ps) es)
     VM.iforM_ vec $ \p ls -> do
         forM_ [(i, j) | i <- ls, j <- ls, i /= j] $ \(i, j) -> do
-            Vertex p0 l0 <- VM.read graph i
-            Vertex p1 l1 <- VM.read graph j
-            VM.write graph i (Vertex p0 (j:l0)) 
-            VM.write graph i (Vertex p0 (i:l1))
+            Vertex p0 e0 <- VM.read graph i
+            Vertex p1 e1 <- VM.read graph j
+            let e = edge p0 p1
+            VM.write graph i (Vertex p0 (M.insert j e e0))
+            VM.write graph j (Vertex p0 (M.insert i e e1))
     V.freeze graph
 
-cover :: Foldable m => m a -> Metric a -> Float -> Graph
-cover vec d r = runST $ do
+mapper :: Foldable m => m a -> Metric a -> SearchAlgorithm -> Graph
+mapper vec d sa = runST $ do
     let n = length vec
         d' = offsetMetric d (V.fromList $ toList vec)
-        bt = buildBallTree d' [0..(n - 1)]
+        bt = ballTree d' [0..(n - 1)]
     vec' <- V.thaw $ V.fromList $ toList vec
     v <- V.thaw $ V.replicate n []
-    coverST d' bt r v
+    coverST d' bt sa v
+
+type DataPoint = V.Vector Float 
+type Dataset   = V.Vector DataPoint
+
+{--
+toDataset :: (Foldable m1, Foldable m2) => m1 (m2 Float) -> Dataset
+toDataset arr = V.fromList $ map (V.fromList . toList) (toList arr)
+--}

@@ -40,9 +40,16 @@ library haskell-mapper-library
     build-depends:    base ^>=4.14.3.0, 
                       containers,
                       vector,
-    hs-source-dirs:   src
+                      text,
+                      servant,
+                      servant-server,
+                      aeson,
+                      wai,
+                      warp
+    hs-source-dirs:   src, 
+                      src/BallTree
     default-language: Haskell2010
-    exposed-modules:  BallTree
+    exposed-modules:  BallTree, Domain, Cover, MapperAPI, BallTree.Internal
 
 test-suite haskell-mapper-test
     type:             exitcode-stdio-1.0

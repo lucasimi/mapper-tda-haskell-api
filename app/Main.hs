@@ -1,6 +1,6 @@
 module Main where
 
-import BallTree
+import MapperAPI
 
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = runServer
