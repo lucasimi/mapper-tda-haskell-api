@@ -3,7 +3,6 @@ module Domain where
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import qualified Data.Map as M
-import qualified Data.Foldable as S
 
 type Metric a = a -> a -> Float
 

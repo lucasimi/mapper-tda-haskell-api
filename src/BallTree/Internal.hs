@@ -18,7 +18,8 @@ data BallTree a
     | Node { center :: a
            , radius :: Float
            , left   :: BallTree a
-           , right  :: BallTree a }
+           , right  :: BallTree a 
+    } deriving Show
 
 data WithDist a = WithDist 
     { point    :: a
@@ -44,8 +45,7 @@ buildBallTree dist vec = runST $ do
 ballSearch :: Ord a => Metric a -> a -> Float -> BallTree a -> S.Set a
 ballSearch _ _ _ Empty = S.empty
 ballSearch dist p eps (Leaf x) =
-    let d = dist p x
-    in if d <= eps
+    if dist p x <= eps
         then S.singleton x
         else S.empty
 ballSearch dist p eps Node { center = c, radius = r, left = x, right = y } =
@@ -68,13 +68,13 @@ buildBallTreeST dist vec =
             WithDist x _ <- VM.read vec 0
             return $ Leaf x
         else do
-            p            <- VM.read vec 0
+            WithDist p _ <- VM.read vec 0
             updateDistST vec dist
             quickSelectST vec m
-            WithDist c r <- VM.read vec m
+            WithDist _ r <- VM.read vec m
             lft          <- buildBallTreeST dist (VM.slice 0 m vec)
             rgt          <- buildBallTreeST dist (VM.slice m (n - m) vec)
-            return $ Node { center = c
+            return $ Node { center = p
                           , radius = r
                           , left   = lft
                           , right  = rgt }
@@ -88,9 +88,9 @@ pivotST vec i = do
     p    <- VM.read vec 0
     hRef <- newSTRef 1
     VM.iforM_ (VM.slice 1 (VM.length vec - 1) vec) (\j xj -> do
-        when (xj <= p) $ do
+        when (xj < p) $ do
             h <- readSTRef hRef
-            VM.swap vec h j
+            VM.swap vec h (j + 1)
             modifySTRef' hRef (+1))
     h    <- readSTRef hRef
     VM.swap vec 0 (h - 1)
@@ -105,9 +105,20 @@ quickSelectST vec i = do
         then return i
         else if i < j
             then quickSelectST (VM.slice 0 j vec) i
-            else quickSelectST (VM.slice j (VM.length  vec - j) vec) (i - j)
+            else quickSelectST (VM.slice (j + 1) (VM.length vec - j - 1) vec) (i - j - 1)
 
+quickSelect :: Ord a => V.Vector a -> Int -> V.Vector a
+quickSelect vec i = runST $ do
+    vec' <- V.thaw vec
+    quickSelectST vec' i
+    V.freeze vec'
 
+pivot :: Ord a => V.Vector a -> Int -> (Int, V.Vector a)
+pivot vec i = runST $ do
+    vec' <- V.thaw vec
+    i' <- pivotST vec' i
+    vec'' <- V.freeze vec'
+    return (i', vec'')
 
 -- extras
 

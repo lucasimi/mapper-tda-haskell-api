@@ -10,12 +10,13 @@ import Data.Text
 import GHC.Generics
 import Servant.API
 import Network.Wai.Handler.Warp
-
 import Servant
+
 import qualified Data.Vector as V
 import qualified Data.List as L
 import qualified Data.Set as S
 import qualified Data.Map as M
+
 import Cover
 import Domain ( Vertex (elements, relations), Metric, Graph, Edge (Edge) )
 import BallTree (SearchAlgorithm(BallSearch))
@@ -164,8 +165,8 @@ toGraph g = GraphResponse
 
 computeMapper :: MapperRequest -> GraphResponse
 computeMapper MapperRequest 
-    { dataset = ds
-    , cover   = BallCoverRequest
+    { dataset    = ds
+    , cover      = BallCoverRequest
         { metric = EuclideanMetricRequest
         , lens   = IdentityLensRequest
         , radius = r }

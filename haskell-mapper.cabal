@@ -59,6 +59,8 @@ test-suite haskell-mapper-test
                       containers,
                       vector,
                       QuickCheck,
+                      quickcheck-instances,
                       haskell-mapper-library
     default-language: Haskell2010
+    other-modules:    BallTree.InternalTestSuite
 
