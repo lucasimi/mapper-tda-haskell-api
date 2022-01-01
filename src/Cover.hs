@@ -12,43 +12,39 @@ import qualified Data.Map as M
 
 import Domain
 import BallTree
+import Utils
+import BallTree.Search
 
-type ClusterLabel = Int
-
-type Offset = Int 
-
-data WithCover a = WithCover a Offset [ClusterLabel]
-
-addClusterLabelST :: Foldable m => STRef s Int -> VM.MVector s [ClusterLabel] -> m Int -> ST s ()
+addClusterLabelST :: Foldable m => STRef s Int -> VM.MVector s (WithCover a) -> m (WithOffset a) -> ST s ()
 addClusterLabelST lblRef vec ids = do
     lbl <- readSTRef lblRef
-    forM_ ids $ \i -> do
-        lbls <- VM.read vec i
-        VM.write vec i (lbl:lbls)
+    forM_ ids $ \(WithOffset _ i) -> do
+        WithCover x xoff lbls <- VM.read vec i
+        VM.write vec i (WithCover x xoff (lbl:lbls))
     writeSTRef lblRef (lbl + 1)
 
-coverST :: Metric Int -> BallTree Int -> SearchAlgorithm -> VM.MVector s [ClusterLabel] -> ST s Graph
+coverST :: Metric (WithOffset a) -> BallTree (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> ST s Graph
 coverST d bt sa vec = do
     lblRef <- newSTRef 0
-    VM.iforM_ vec $ \i ls -> do
+    VM.iforM_ vec $ \i (WithCover x xoff ls) -> do
         when (null ls) $ do
-            let ids = getNeighbors d i sa bt
+            let ids = getNeighbors d (WithOffset x xoff) sa bt
             unless (null ids) $ do
                 addClusterLabelST lblRef vec ids
     lbl <- readSTRef lblRef
     graph <- VM.generate lbl (const (Vertex S.empty M.empty))
     populateGraphST graph vec
 
-offsetMetric :: Metric a -> V.Vector a -> Metric Int
-offsetMetric dist vec i j = dist (vec V.! i) (vec V.! j)
+offsetMetric :: Metric a -> Metric (WithOffset a)
+offsetMetric dist (WithOffset x _) (WithOffset y _) = dist x y
 
-populateGraphST :: VM.MVector s Vertex -> VM.MVector s [ClusterLabel] -> ST s Graph
+populateGraphST :: VM.MVector s Vertex -> VM.MVector s (WithCover a) -> ST s Graph
 populateGraphST graph vec = do
-    VM.iforM_ vec $ \p ls -> do
+    VM.iforM_ vec $ \p (WithCover _ _ ls) -> do
         forM_ ls $ \l -> do
             Vertex ps es <- VM.read graph l
             VM.write graph l (Vertex (S.insert p ps) es)
-    VM.iforM_ vec $ \p ls -> do
+    VM.iforM_ vec $ \p (WithCover _ _ ls) -> do
         forM_ [(i, j) | i <- ls, j <- ls, i /= j] $ \(i, j) -> do
             Vertex p0 e0 <- VM.read graph i
             Vertex p1 e1 <- VM.read graph j
@@ -60,16 +56,10 @@ populateGraphST graph vec = do
 mapper :: Foldable m => m a -> Metric a -> SearchAlgorithm -> Graph
 mapper vec d sa = runST $ do
     let n = length vec
-        vec' = V.fromList $ toList vec
-        d' = offsetMetric d vec'
-        bt = ballTree d' [0..(n - 1)]
-    u <- V.thaw $ V.replicate n []
+        d' = offsetMetric d
+        vec' = V.imap (flip WithOffset) (V.fromList $ toList vec)
+        vec'' = V.map (\(WithOffset x i) -> WithCover x i []) vec'
+        bt = ballTree d' sa vec'
+    u <- V.thaw vec''
     coverST d' bt sa u
 
-type DataPoint = V.Vector Float
-type Dataset   = V.Vector DataPoint
-
-{--
-toDataset :: (Foldable m1, Foldable m2) => m1 (m2 Float) -> Dataset
-toDataset arr = V.fromList $ map (V.fromList . toList) (toList arr)
---}

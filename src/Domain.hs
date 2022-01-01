@@ -6,6 +6,12 @@ import qualified Data.Map as M
 
 type Metric a = a -> a -> Float
 
+type Scalar = Float
+
+type DataPoint = V.Vector Scalar
+
+type Dataset   = V.Vector DataPoint
+
 data Vertex = Vertex
     { elements   :: S.Set Int
     , relations  :: M.Map Int Edge }

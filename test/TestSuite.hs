@@ -1,7 +1,9 @@
 module Main where
-import BallTree.InternalTestSuite (internalTestSuite)
-import Test.QuickCheck (quickCheck)
+import Test.QuickCheck
+import BallTree.InternalTestSuite
+import UtilsTestSuite
 
 main :: IO ()
 main = do
     internalTestSuite
+    utilsTestSuite

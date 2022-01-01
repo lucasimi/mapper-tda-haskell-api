@@ -19,8 +19,8 @@ import qualified Data.Set as S
 import qualified Data.Map as M
 
 import Cover
-import Domain ( Vertex (elements, relations), Metric, Graph, Edge (Edge) )
-import BallTree (SearchAlgorithm(BallSearch))
+import Domain ( Vertex (elements, relations), Metric, Graph, Edge (Edge), Dataset, DataPoint )
+import BallTree.Search
 
 buildTag :: String -> String
 buildTag "" = ""
