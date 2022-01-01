@@ -13,24 +13,28 @@ import qualified Data.Map as M
 import Domain
 import BallTree
 
-type Label = Int
+type ClusterLabel = Int
 
-addLabelST :: Foldable m => STRef s Int -> VM.MVector s [Label] -> m Int -> ST s ()
-addLabelST lblRef vec ids = do
+type Offset = Int 
+
+data WithCover a = WithCover a Offset [ClusterLabel]
+
+addClusterLabelST :: Foldable m => STRef s Int -> VM.MVector s [ClusterLabel] -> m Int -> ST s ()
+addClusterLabelST lblRef vec ids = do
     lbl <- readSTRef lblRef
     forM_ ids $ \i -> do
         lbls <- VM.read vec i
         VM.write vec i (lbl:lbls)
     writeSTRef lblRef (lbl + 1)
 
-coverST :: Metric Int -> BallTree Int -> SearchAlgorithm -> VM.MVector s [Label] -> ST s Graph
+coverST :: Metric Int -> BallTree Int -> SearchAlgorithm -> VM.MVector s [ClusterLabel] -> ST s Graph
 coverST d bt sa vec = do
     lblRef <- newSTRef 0
     VM.iforM_ vec $ \i ls -> do
         when (null ls) $ do
             let ids = getNeighbors d i sa bt
             unless (null ids) $ do
-                addLabelST lblRef vec ids
+                addClusterLabelST lblRef vec ids
     lbl <- readSTRef lblRef
     graph <- VM.generate lbl (const (Vertex S.empty M.empty))
     populateGraphST graph vec
@@ -38,13 +42,12 @@ coverST d bt sa vec = do
 offsetMetric :: Metric a -> V.Vector a -> Metric Int
 offsetMetric dist vec i j = dist (vec V.! i) (vec V.! j)
 
-populateGraphST :: VM.MVector s Vertex -> VM.MVector s [Label] -> ST s Graph
+populateGraphST :: VM.MVector s Vertex -> VM.MVector s [ClusterLabel] -> ST s Graph
 populateGraphST graph vec = do
     VM.iforM_ vec $ \p ls -> do
         forM_ ls $ \l -> do
             Vertex ps es <- VM.read graph l
             VM.write graph l (Vertex (S.insert p ps) es)
-    {--
     VM.iforM_ vec $ \p ls -> do
         forM_ [(i, j) | i <- ls, j <- ls, i /= j] $ \(i, j) -> do
             Vertex p0 e0 <- VM.read graph i
@@ -52,7 +55,6 @@ populateGraphST graph vec = do
             let e = edge p0 p1
             VM.write graph i (Vertex p0 (M.insert j e e0))
             VM.write graph j (Vertex p1 (M.insert i e e1))
-    --}
     V.freeze graph
 
 mapper :: Foldable m => m a -> Metric a -> SearchAlgorithm -> Graph

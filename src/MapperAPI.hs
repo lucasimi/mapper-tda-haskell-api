@@ -7,6 +7,7 @@ module MapperAPI where
 
 import Data.Aeson
 import Data.Text
+import Data.Char
 import GHC.Generics
 import Servant.API
 import Network.Wai.Handler.Warp
@@ -20,6 +21,20 @@ import qualified Data.Map as M
 import Cover
 import Domain ( Vertex (elements, relations), Metric, Graph, Edge (Edge) )
 import BallTree (SearchAlgorithm(BallSearch))
+
+buildTag :: String -> String
+buildTag "" = ""
+buildTag [c] = [Data.Char.toLower c]
+buildTag (c:cs) = case Prelude.break isUpper cs of
+    ([], _) -> [Data.Char.toLower c]
+    (d, ds) -> Data.Char.toLower c:d
+
+jsonOptions :: Options
+jsonOptions = defaultOptions  
+    { allNullaryToStringTag = False
+    , sumEncoding           = TaggedObject "type" "" 
+    , constructorTagModifier = buildTag
+    }
 
 newtype Point = Point { coordinates :: [Float] }
     deriving (Eq, Show, Read, Generic)
@@ -38,16 +53,10 @@ data LensRequest
     deriving (Eq, Show, Read, Generic)
 
 instance FromJSON LensRequest where
-    parseJSON = genericParseJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON LensRequest where
-    toJSON = genericToJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    toJSON = genericToJSON jsonOptions
 
 data MetricRequest
     = EuclideanMetricRequest
@@ -56,16 +65,10 @@ data MetricRequest
     deriving (Eq, Show, Read, Generic)
 
 instance FromJSON MetricRequest where
-    parseJSON = genericParseJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON MetricRequest where
-    toJSON = genericToJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    toJSON = genericToJSON jsonOptions
 
 data CoverRequest 
     = TrivialCoverRequest
@@ -77,19 +80,13 @@ data CoverRequest
         { metric :: MetricRequest
         , lens   :: LensRequest
         , neighbors :: Int}
-    deriving (Eq, Show, Read, Generic)
+    deriving (Eq, Read, Show, Generic)
 
 instance FromJSON CoverRequest where
-    parseJSON = genericParseJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON CoverRequest where
-    toJSON = genericToJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    toJSON = genericToJSON jsonOptions
 
 data ClusteringRequest
     = TrivialClusteringRequest
@@ -100,16 +97,10 @@ data ClusteringRequest
     deriving (Eq, Show, Read, Generic)
 
 instance FromJSON ClusteringRequest where
-    parseJSON = genericParseJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    parseJSON = genericParseJSON jsonOptions
 
 instance ToJSON ClusteringRequest where
-    toJSON = genericToJSON defaultOptions
-        { allNullaryToStringTag = False
-        , sumEncoding           = TaggedObject "type" "" 
-        }
+    toJSON = genericToJSON jsonOptions
 
 data MapperRequest = MapperRequest
     { dataset    :: DatasetRequest
