@@ -1,35 +1,22 @@
-module BallTree.Internal ( BallTree
-                         , buildBallTree
-                         , ballSearch ) where
+module BallTree.CircleTree.SingletonLeaf
+    ( BallTree
+    , buildBallTree
+    , ballSearch ) where
 
-import Control.Monad    ( forM_, when )
-import Control.Monad.ST ( runST, ST )
-import Data.STRef       ( modifySTRef', newSTRef, readSTRef, writeSTRef, STRef )
-import Data.Foldable    ( Foldable(toList) )
+import Control.Monad.ST
+import Data.Foldable
 
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
-import qualified Data.Map as M
 
 import Domain
 import Utils
 import BallTree.Search
+import BallTree.CircleTree.Common
+import BallTree.Common
 
-data BallTree a
-    = Empty
-    | Leaf a
-    | Node { center :: a
-           , radius :: Float
-           , left   :: BallTree a
-           , right  :: BallTree a 
-    } deriving Show
-
-updateDistST :: VM.MVector s (WithDist a) -> Metric a -> ST s ()
-updateDistST vec dist = do
-    (WithDist p _) <- VM.read vec 0
-    VM.iforM_ vec (\i (WithDist x _) -> do
-        VM.write vec i (WithDist x (dist p x)))
+type BallTree a = CircleTree a a
 
 buildBallTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
 buildBallTree dist (BallSearch radius) vec = runST $ do

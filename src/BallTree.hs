@@ -1,14 +1,13 @@
 module BallTree where
 
 import qualified Data.Set as S
-import qualified Data.Vector as V
 
 import Domain
-import qualified BallTree.Internal as BT
 import Utils
 import BallTree.Search
+import qualified BallTree.CircleTree.SingletonLeaf as BT
 
-type BallTree = BT.BallTree
+type BallTree a = BT.BallTree a
 
 ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BT.BallTree a
 ballTree = BT.buildBallTree

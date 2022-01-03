@@ -1,4 +1,4 @@
-module BallTree.InternalTestSuite where
+module BallTree.CircleTree.SingletonLeafTest where
 
 import Test.QuickCheck
 import Test.QuickCheck.Instances.Vector
@@ -11,7 +11,7 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
 import Domain
-import BallTree.Internal
+import BallTree.CircleTree.SingletonLeaf
 import BallTree.Search
 
 internalTestSuite :: IO ()

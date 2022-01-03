@@ -53,8 +53,10 @@ library haskell-mapper-library
                       Cover,
                       MapperAPI,
                       BallTree,
-                      BallTree.Internal,
-                      BallTree.Multiple,
+                      BallTree.Common,
+                      BallTree.CircleTree.Common,
+                      BallTree.CircleTree.SingletonLeaf,
+                      BallTree.CircleTree.ContainerLeaf,
                       BallTree.Search,
                       Utils
 
@@ -69,5 +71,5 @@ test-suite haskell-mapper-test
                       quickcheck-instances,
                       haskell-mapper-library
     default-language: Haskell2010
-    other-modules:    BallTree.InternalTestSuite,
-                      UtilsTestSuite
+    other-modules:    BallTree.CircleTree.SingletonLeafTest,
+                      BallTree.CommonTest

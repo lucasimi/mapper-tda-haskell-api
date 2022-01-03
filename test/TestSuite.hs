@@ -1,7 +1,6 @@
 module Main where
-import Test.QuickCheck
-import BallTree.InternalTestSuite
-import UtilsTestSuite
+import BallTree.CircleTree.SingletonLeafTest
+import BallTree.CommonTest
 
 main :: IO ()
 main = do

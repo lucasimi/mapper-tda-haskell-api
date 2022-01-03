@@ -62,4 +62,3 @@ mapper vec d sa = runST $ do
         bt = ballTree d' sa vec'
     u <- V.thaw vec''
     coverST d' bt sa u
-
