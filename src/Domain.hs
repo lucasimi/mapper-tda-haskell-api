@@ -1,26 +1,38 @@
 module Domain where
 
-import qualified Data.Set as S
+import qualified Data.HashSet as S
 import qualified Data.Vector as V
-import qualified Data.Map as M
-
-type Metric a = a -> a -> Float
+import qualified Data.Vector.Unboxed as VU
+import qualified Data.HashMap.Strict as M
+import qualified Data.Foldable as F
+import Data.Hashable
 
 type Scalar = Float
 
-type DataPoint = V.Vector Scalar
+type Metric a = a -> a -> Scalar
+
+type DataPoint = VU.Vector Scalar
 
 type Dataset   = V.Vector DataPoint
 
+toDataPoint :: Foldable m => m Scalar -> DataPoint
+toDataPoint = VU.fromList . F.toList
+
+toDataset :: (Foldable m, Foldable n) => n (m Scalar) -> Dataset
+toDataset v = V.fromList $ map toDataPoint (F.toList v)
+
+euclideanMetric :: Metric DataPoint
+euclideanMetric u v = sqrt $ VU.sum $ VU.zipWith (\x y -> let z = x - y in z * z) u v
+
 data Vertex = Vertex
-    { elements   :: S.Set Int
-    , relations  :: M.Map Int Edge }
+    { elements   :: S.HashSet Int
+    , relations  :: M.HashMap Int Edge }
 
 data Edge = Edge
     { similarity :: Float
     , weight     :: Float }
 
-edge :: Ord a => S.Set a -> S.Set a -> Edge
+edge :: (Eq a, Hashable a) => S.HashSet a -> S.HashSet a -> Edge
 edge s1 s2 = Edge s w 
     where 
         s3 = S.intersection s1 s2

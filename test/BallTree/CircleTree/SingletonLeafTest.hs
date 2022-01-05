@@ -5,8 +5,9 @@ import Test.QuickCheck.Instances.Vector
 
 import Control.Monad.ST (runST)
 
-import qualified Data.Set as S
+import qualified Data.HashSet as S
 import Data.Foldable
+import Data.Hashable
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
@@ -23,27 +24,27 @@ internalTestSuite = do
 absDist :: Integral a => Metric a
 absDist x y = fromIntegral $ abs $ x - y
 
-naiveSearch :: (Foldable m, Ord a) => Metric a -> a -> Float -> m a -> S.Set a
+naiveSearch :: (Foldable m, Eq a, Hashable a) => Metric a -> a -> Float -> m a -> S.HashSet a
 naiveSearch dist p eps = foldr (\x s ->
     if dist x p <= eps then S.insert x s else s) S.empty
 
 prop_SearchSingleton :: Metric Int -> V.Vector Int -> Int -> Bool 
 prop_SearchSingleton dist points i = 
-    let bt = buildBallTree dist (BallSearch 0.1) points
+    let bt = build dist (BallSearch 0.1) points
         i' = i `mod` V.length points
         c = points V.! i'
-    in (V.length points == 0) || ballSearch dist c 0.1 bt == S.singleton c
+    in (V.length points == 0) || search dist c 0.1 bt == S.singleton c
 
-prop_SearchCorrectness :: Ord a => Metric a -> V.Vector a -> Int -> Float -> Bool
+prop_SearchCorrectness :: (Eq a, Hashable a) => Metric a -> V.Vector a -> Int -> Float -> Bool
 prop_SearchCorrectness dist points i r =
-    let bt = buildBallTree dist (BallSearch r) points
+    let bt = build dist (BallSearch r) points
         i' = i `mod` V.length points
         c = points V.! i'
-    in ballSearch dist c r bt == naiveSearch dist c r points
+    in search dist c r bt == naiveSearch dist c r points
 
-prop_SearchContainsCenter :: Ord a => Metric a -> V.Vector a -> Int -> Float -> Bool
+prop_SearchContainsCenter :: (Eq a, Hashable a) => Metric a -> V.Vector a -> Int -> Float -> Bool
 prop_SearchContainsCenter dist points idx eps =
-    let bt = buildBallTree dist (BallSearch eps) points
+    let bt = build dist (BallSearch eps) points
         i = idx `mod` V.length points
         p = points V.! i
-    in (V.length points == 0) || (eps <= 0) || S.member p (ballSearch dist p eps bt)
+    in (V.length points == 0) || (eps <= 0) || S.member p (search dist p eps bt)

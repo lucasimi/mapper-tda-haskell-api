@@ -35,23 +35,36 @@ executable haskell-mapper
                       haskell-mapper-library
     hs-source-dirs:   app
     default-language: Haskell2010
+    ghc-options:
+            -O2
+            -threaded
+            -fllvm
+            -fprof-auto
 
 library haskell-mapper-library
     build-depends:    base ^>=4.14.3.0, 
                       containers,
+                      hashable,
+                      unordered-containers,
                       vector,
+                      primitive,
                       text,
                       servant,
                       servant-server,
                       aeson,
                       wai,
-                      warp
+                      wai-logger,
+                      warp,
+                      scotty,
+                      time
     hs-source-dirs:   src, 
                       src/BallTree
     default-language: Haskell2010
     exposed-modules:  Domain,
                       Cover,
-                      MapperAPI,
+                      WebService.ServantWS,
+                      WebService.ScottyWS,
+                      WebService.MapperAPI,
                       BallTree,
                       BallTree.Common,
                       BallTree.CircleTree.Common,
@@ -66,6 +79,8 @@ test-suite haskell-mapper-test
     hs-source-dirs:   test
     build-depends:    base ^>=4.14.3.0, 
                       containers,
+                      unordered-containers,
+                      hashable,
                       vector,
                       QuickCheck,
                       quickcheck-instances,
