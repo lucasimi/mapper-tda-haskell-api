@@ -75,10 +75,10 @@ buildST dist minRadius vec =
             WithDist _ r <- VM.unsafeRead vec m
             lft <- if r <= minRadius
                 then do
-                    vec' <- V.freeze $ VM.unsafeSlice 0 m vec
+                    vec' <- V.freeze $ VM.unsafeTake m vec
                     return $ Leaf $ V.map (\(WithDist x d) -> x) vec'
-                else buildST dist minRadius (VM.unsafeSlice 0 m vec)
-            rgt          <- buildST dist minRadius (VM.unsafeSlice m (n - m) vec)
+                else buildST dist minRadius (VM.unsafeTake m vec)
+            rgt          <- buildST dist minRadius (VM.unsafeDrop m vec)
             return $ Node { center = p
                           , radius = r
                           , left   = lft

@@ -13,7 +13,7 @@ pivotST vec i = do
     VGM.unsafeSwap vec 0 i
     p    <- VGM.unsafeRead vec 0
     hRef <- newSTRef 1
-    VGM.iforM_ (VGM.unsafeSlice 1 (VGM.length vec - 1) vec) (\j xj -> do
+    VGM.iforM_ (VGM.unsafeDrop 1 vec) (\j xj -> do
         when (xj < p) $ do
             h <- readSTRef hRef
             VGM.unsafeSwap vec h (j + 1)
@@ -31,5 +31,5 @@ quickSelectST vec i = do
     if i == j
         then return i
         else if i < j
-            then quickSelectST (VGM.unsafeSlice 0 j vec) i
-            else quickSelectST (VGM.unsafeSlice (j + 1) (VGM.length vec - j - 1) vec) (i - j - 1)
+            then quickSelectST (VGM.unsafeTake j vec) i
+            else quickSelectST (VGM.unsafeDrop (j + 1) vec) (i - j - 1)

@@ -55,8 +55,8 @@ buildST dist vec =
             updateDistST vec dist
             quickSelectST vec m
             WithDist _ r <- VM.unsafeRead vec m
-            lft          <- buildST dist (VM.unsafeSlice 0 m vec)
-            rgt          <- buildST dist (VM.unsafeSlice m (n - m) vec)
+            lft          <- buildST dist (VM.unsafeTake m vec)
+            rgt          <- buildST dist (VM.unsafeDrop m vec)
             return $ Node { center = p
                           , radius = r
                           , left   = lft
