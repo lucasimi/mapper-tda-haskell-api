@@ -87,4 +87,4 @@ test-suite haskell-mapper-test
                       haskell-mapper-library
     default-language: Haskell2010
     other-modules:    BallTree.CircleTree.SingletonLeafTest,
-                      BallTree.CommonTest
+                      UtilsTest

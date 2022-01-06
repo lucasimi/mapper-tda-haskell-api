@@ -5,7 +5,6 @@
 module WebService.MapperAPI where
 
 import Data.Aeson
-import Data.Text
 import Data.Char
 import GHC.Generics
 
@@ -16,7 +15,7 @@ import qualified Data.HashSet as S
 import qualified Data.HashMap.Strict as M
 
 import Cover
-import Domain ( Vertex (elements, relations), Metric, Graph, Edge (Edge), Dataset, DataPoint, Scalar, euclideanMetric, toDataset )
+import Domain
 import BallTree.Search
 
 buildTag :: String -> String

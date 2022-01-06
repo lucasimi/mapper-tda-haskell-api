@@ -14,7 +14,24 @@ import qualified Data.Foldable as F
 import Domain
 import BallTree
 import BallTree.Search
-import Utils
+import Data.Hashable
+
+type Offset = Int
+
+data WithOffset a = WithOffset a Offset
+
+instance Eq (WithOffset a) where
+    WithOffset _ i == WithOffset _ j = i == j
+
+instance Ord (WithOffset a) where
+    WithOffset _ i <= WithOffset _ j = i <= j
+
+instance Hashable (WithOffset a) where
+    hashWithSalt _ (WithOffset _ i) = i
+
+type ClusterLabel = Int
+
+data WithCover a = WithCover a Offset [ClusterLabel]
 
 addClusterLabelST :: Foldable m => STRef s Int -> VM.MVector s (WithCover a) -> m (WithOffset a) -> ST s ()
 addClusterLabelST lblRef vec ids = do

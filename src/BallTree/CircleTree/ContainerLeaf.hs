@@ -15,6 +15,7 @@ import Domain
 import BallTree.Search
 import BallTree.CircleTree.Common
 import BallTree.Common
+import Utils
 
 type LeafContainer = V.Vector
 type BallTree a = CircleTree a (LeafContainer a)

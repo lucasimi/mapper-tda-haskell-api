@@ -1,6 +1,6 @@
 module Main where
 
-import MapperAPI
+import WebService.ScottyWS
 
 main :: IO ()
 main = runServer

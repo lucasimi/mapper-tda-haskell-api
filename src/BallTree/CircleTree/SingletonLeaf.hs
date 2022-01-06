@@ -14,6 +14,7 @@ import Domain
 import BallTree.Search
 import BallTree.CircleTree.Common
 import BallTree.Common
+import Utils
 
 type BallTree a = CircleTree a a
 
