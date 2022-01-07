@@ -8,15 +8,18 @@ import Data.Aeson
 import Data.Char
 import GHC.Generics
 
+import Data.Foldable
+
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
-import qualified Data.List as L
-import qualified Data.HashSet as S
-import qualified Data.HashMap.Strict as M
 
-import Cover
-import Domain
-import BallTree.Search
+import qualified Data.IntSet as IS
+import qualified Data.IntMap as IM
+
+import Mapper.Cover
+import Mapper.Domain
+import Data.BallTree
+import Data.Time
 
 buildTag :: String -> String
 buildTag "" = ""
@@ -141,11 +144,11 @@ toMetric _ _ _ = undefined
 
 toGraph :: Graph -> GraphResponse
 toGraph g = GraphResponse
-    { vertices = [VertexResponse i (S.toList $ elements u) | (i, u) <- L.zip [0..] (V.toList g)] 
+    { vertices = [VertexResponse i (IS.toList $ elements u) | (i, u) <- zip [0..] (V.toList g)] 
     , edges    = [EdgeResponse i 
                     [EdgeAdjacency j w s 
-                    | (j, Edge s w) <- M.toList $ relations u] 
-                 | (i, u) <- L.zip [0..] (V.toList g)] }
+                    | (j, Edge s w) <- IM.toList $ relations u] 
+                 | (i, u) <- zip [0..] (V.toList g)] }
 
 computeMapper :: MapperRequest -> GraphResponse
 computeMapper MapperRequest 
@@ -155,8 +158,20 @@ computeMapper MapperRequest
         , lens   = IdentityLensRequest
         , radius = r }
     , clustering = TrivialClusteringRequest } = 
-    let vec = toDataset $ L.map coordinates (points ds)
+    let vec = toDataset $ map coordinates (points ds)
         d = toMetric EuclideanMetricRequest
         sa = BallSearch r
     in toGraph $ mapper vec d sa
 computeMapper _ = undefined
+
+processMapperRequest :: MapperRequest -> IO GraphResponse
+processMapperRequest req = do
+    t0 <- getCurrentTime 
+    putStrLn $ "Received request: " ++ show t0
+    let g = computeMapper req
+    putStrLn $ "num of verts = " ++ show (Prelude.length $ vertices g)
+    putStrLn $ "num of edges = " ++ show (Prelude.length $ edges g)
+    t1 <- getCurrentTime 
+    putStrLn $ "Computed response: " ++ show t1
+    putStrLn $ "Elapsed time: " ++ show (diffUTCTime t1 t0)
+    return g

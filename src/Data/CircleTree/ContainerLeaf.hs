@@ -1,7 +1,7 @@
-module BallTree.CircleTree.ContainerLeaf
+module Data.CircleTree.ContainerLeaf
     ( BallTree
-    , build
-    , search ) where
+    , ballTree
+    , getNeighbors ) where
 
 import Control.Monad.ST
 import Data.Foldable
@@ -11,38 +11,24 @@ import qualified Data.HashSet as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
-import Domain
-import BallTree.Search
-import BallTree.CircleTree.Common
-import BallTree.Common
-import Utils
+import Data.CircleTree.Common
+import Data.Common
+import Data.QuickSelect
+import Data.BallTree
 
 type LeafContainer = V.Vector
+
 type BallTree a = CircleTree a (LeafContainer a)
 
-build :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
-build dist (BallSearch radius) vec = runST $ do
+ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
+ballTree dist (BallSearch radius) vec = runST $ do
     vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
-    buildST dist radius vec'
-build _ _ _ = undefined
+    ballTreeST dist radius vec'
+ballTree _ _ _ = undefined
 
-search :: (Eq a, Hashable a) => Metric a -> a -> Float -> BallTree a -> S.HashSet a
-search = searchIter S.empty 
-
-{--
-search :: (Eq a, Hashable a) => Metric a -> a -> Float -> BallTree a -> S.HashSet a
-search _ _ _ Empty = S.empty
-search dist p eps (Leaf x) =
-    S.fromList $ toList $ V.filter (\x -> dist p x <= eps) x
-search dist p eps Node { center = c, radius = r, left = x, right = y } =
-    let lSearch = if dist p c <= r + eps
-            then search dist p eps x
-            else S.empty
-        rSearch = if dist p c + eps > r
-            then search dist p eps y
-            else S.empty
-    in S.union lSearch rSearch
---}
+getNeighbors :: (Eq a, Hashable a) => Metric a -> a -> SearchAlgorithm -> BallTree a -> S.HashSet a
+getNeighbors d p (BallSearch r) bt = searchIter S.empty d p r bt
+getNeighbors _ _ _ _ = undefined 
 
 searchIter :: (Eq a, Hashable a) => S.HashSet a -> Metric a -> a -> Float -> BallTree a -> S.HashSet a
 searchIter s _ _ _ Empty = s
@@ -58,8 +44,8 @@ searchIter s dist p eps Node { center = c, radius = r, left = x, right = y } =
             else lSearch
     in rSearch
 
-buildST :: Metric a -> Float -> VM.MVector s (WithDist a) -> ST s (BallTree a)
-buildST dist minRadius vec =
+ballTreeST :: Metric a -> Float -> VM.MVector s (WithDist a) -> ST s (BallTree a)
+ballTreeST dist minRadius vec =
     let n = VM.length vec
         m = n `div` 2
     in if n == 0
@@ -77,8 +63,8 @@ buildST dist minRadius vec =
                 then do
                     vec' <- V.freeze $ VM.unsafeTake m vec
                     return $ Leaf $ V.map (\(WithDist x d) -> x) vec'
-                else buildST dist minRadius (VM.unsafeTake m vec)
-            rgt          <- buildST dist minRadius (VM.unsafeDrop m vec)
+                else ballTreeST dist minRadius (VM.unsafeTake m vec)
+            rgt          <- ballTreeST dist minRadius (VM.unsafeDrop m vec)
             return $ Node { center = p
                           , radius = r
                           , left   = lft

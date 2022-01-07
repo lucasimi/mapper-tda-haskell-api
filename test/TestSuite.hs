@@ -1,6 +1,6 @@
 module Main where
-import BallTree.CircleTree.SingletonLeafTest
-import UtilsTest
+import Data.BallTree.CircleTree.SingletonLeafTest
+import Data.QuickSelectTest
 
 main :: IO ()
 main = do

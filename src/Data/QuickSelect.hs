@@ -1,8 +1,11 @@
-module Utils where
+module Data.QuickSelect
+    ( quickSelectST 
+    , pivotST ) where
 
 import Control.Monad
 import Control.Monad.ST
 import Data.STRef
+
 import qualified Data.Vector.Generic.Mutable as VGM
 
 -- puts the element at index i in its correct position

@@ -1,4 +1,4 @@
-module UtilsTest where
+module Data.QuickSelectTest where
 
 import Test.QuickCheck
 import Test.QuickCheck.Instances.Vector
@@ -8,7 +8,7 @@ import Control.Monad.ST
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
-import Utils
+import Data.QuickSelect
 
 quickSelect :: Ord a => V.Vector a -> Int -> V.Vector a
 quickSelect vec i = runST $ do

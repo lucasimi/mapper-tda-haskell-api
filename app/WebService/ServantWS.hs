@@ -11,7 +11,6 @@ import Servant
 import WebService.MapperAPI
 import Network.Wai.Logger
 import Control.Monad.IO.Class
-import Data.Time
 
 type API = "mapper" :> "compute" :> ReqBody '[JSON] MapperRequest :> Post '[JSON] GraphResponse
 
@@ -22,16 +21,7 @@ server :: Server API
 server = res
   where 
     res :: MapperRequest -> Handler GraphResponse
-    res req = do
-        t0 <- liftIO getCurrentTime 
-        liftIO $ putStrLn $ "Received request: " ++ show t0
-        let g = computeMapper req
-        liftIO $ putStrLn $ "num of verts = " ++ show (Prelude.length $ vertices g)
-        liftIO $ putStrLn $ "num of edges = " ++ show (Prelude.length $ edges g)
-        t1 <- liftIO getCurrentTime 
-        liftIO $ putStrLn $ "Computed response: " ++ show t1
-        liftIO $ putStrLn $ "Elapsed time: " ++ show (diffUTCTime t1 t0)
-        return g
+    res req = liftIO $ processMapperRequest req
 
 runServer :: IO ()
 runServer = 

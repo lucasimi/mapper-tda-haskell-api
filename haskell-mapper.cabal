@@ -25,21 +25,31 @@ executable haskell-mapper
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:    
+    other-modules:    WebService.ServantWS,
+                      WebService.ScottyWS,
+                      WebService.MapperAPI
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base ^>=4.14.3.0, 
                       containers,
                       vector,
-                      haskell-mapper-library
+                      haskell-mapper-library,
+                      servant,
+                      servant-server,
+                      aeson,
+                      wai,
+                      wai-logger,
+                      warp,
+                      scotty,
+                      text,
+                      time
     hs-source-dirs:   app
     default-language: Haskell2010
-    ghc-options:
-            -O2
-            -threaded
-            -fllvm
-            -fprof-auto
+    ghc-options:      -O2
+                      -threaded
+                      -fllvm
+                      -fprof-auto
 
 library haskell-mapper-library
     build-depends:    base ^>=4.14.3.0, 
@@ -48,30 +58,16 @@ library haskell-mapper-library
                       unordered-containers,
                       vector,
                       primitive,
-                      text,
-                      servant,
-                      servant-server,
-                      aeson,
-                      wai,
-                      wai-logger,
-                      warp,
-                      scotty,
-                      time
-    hs-source-dirs:   src, 
-                      src/BallTree
+    hs-source-dirs:   src
     default-language: Haskell2010
-    exposed-modules:  Domain,
-                      Cover,
-                      WebService.ServantWS,
-                      WebService.ScottyWS,
-                      WebService.MapperAPI,
-                      BallTree,
-                      BallTree.Common,
-                      BallTree.CircleTree.Common,
-                      BallTree.CircleTree.SingletonLeaf,
-                      BallTree.CircleTree.ContainerLeaf,
-                      BallTree.Search,
-                      Utils
+    exposed-modules:  Mapper.Domain,
+                      Mapper.Cover,
+                      Data.BallTree,
+                      Data.Common,
+                      Data.QuickSelect,
+                      Data.CircleTree.ContainerLeaf,
+                      Data.CircleTree.SingletonLeaf,
+                      Data.CircleTree.Common
 
 test-suite haskell-mapper-test
     type:             exitcode-stdio-1.0
@@ -86,5 +82,5 @@ test-suite haskell-mapper-test
                       quickcheck-instances,
                       haskell-mapper-library
     default-language: Haskell2010
-    other-modules:    BallTree.CircleTree.SingletonLeafTest,
-                      UtilsTest
+    other-modules:    Data.BallTree.CircleTree.SingletonLeafTest,
+                      Data.QuickSelectTest

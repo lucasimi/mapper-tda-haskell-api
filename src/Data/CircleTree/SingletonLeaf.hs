@@ -1,31 +1,32 @@
-module BallTree.CircleTree.SingletonLeaf
+module Data.CircleTree.SingletonLeaf
     ( BallTree
-    , build
-    , search ) where
+    , ballTree
+    , getNeighbors ) where
 
 import Control.Monad.ST
 import Data.Foldable
 import Data.Hashable
+
 import qualified Data.HashSet as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
-import Domain
-import BallTree.Search
-import BallTree.CircleTree.Common
-import BallTree.Common
-import Utils
+import Data.CircleTree.Common
+import Data.BallTree
+import Data.Common
+import Data.QuickSelect
 
 type BallTree a = CircleTree a a
 
-build :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
-build dist (BallSearch radius) vec = runST $ do
+ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
+ballTree dist (BallSearch radius) vec = runST $ do
     vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
-    buildST dist vec'
-build _ _ _ = undefined
+    ballTreeST dist vec'
+ballTree _ _ _ = undefined
 
-search :: (Eq a, Hashable a) => Metric a -> a -> Float -> BallTree a -> S.HashSet a
-search = searchIter S.empty 
+getNeighbors :: (Eq a, Hashable a) => Metric a -> a -> SearchAlgorithm -> BallTree a -> S.HashSet a
+getNeighbors d p (BallSearch r) bt = searchIter S.empty d p r bt
+getNeighbors _ _ _ _ = undefined 
 
 searchIter :: (Eq a, Hashable a) => S.HashSet a -> Metric a -> a -> Float -> BallTree a -> S.HashSet a
 searchIter s _ _ _ Empty = s
@@ -40,8 +41,8 @@ searchIter s dist p eps Node { center = c, radius = r, left = x, right = y } =
             else lSearch
     in rSearch
 
-buildST :: Metric a -> VM.MVector s (WithDist a) -> ST s (BallTree a)
-buildST dist vec =
+ballTreeST :: Metric a -> VM.MVector s (WithDist a) -> ST s (BallTree a)
+ballTreeST dist vec =
     let n = VM.length vec
         m = n `div` 2
     in if n == 0
@@ -55,8 +56,8 @@ buildST dist vec =
             updateDistST vec dist
             quickSelectST vec m
             WithDist _ r <- VM.unsafeRead vec m
-            lft          <- buildST dist (VM.unsafeTake m vec)
-            rgt          <- buildST dist (VM.unsafeDrop m vec)
+            lft          <- ballTreeST dist (VM.unsafeTake m vec)
+            rgt          <- ballTreeST dist (VM.unsafeDrop m vec)
             return $ Node { center = p
                           , radius = r
                           , left   = lft

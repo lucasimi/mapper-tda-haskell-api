@@ -1,10 +1,12 @@
-module BallTree.CircleTree.Common where
+module Data.CircleTree.Common where
+
+import Data.BallTree
 
 data CircleTree a b
     = Empty
     | Leaf b
     | Node { center :: a
-           , radius :: Float
+           , radius :: Scalar
            , left   :: CircleTree a b
            , right  :: CircleTree a b
     } deriving Show

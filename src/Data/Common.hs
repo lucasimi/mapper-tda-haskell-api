@@ -1,15 +1,12 @@
-module BallTree.Common where
+module Data.Common where
 
 import Control.Monad.ST
 
 import qualified Data.Vector.Mutable as VM
-import qualified Data.Vector as V
 
-import Domain
+import Data.BallTree
 
-data WithDist a = WithDist 
-    { point    :: a
-    , distance :: Float }
+data WithDist a = WithDist a Scalar
 
 instance Eq (WithDist a) where
     WithDist p0 d0 == WithDist p1 d1 = d0 == d1

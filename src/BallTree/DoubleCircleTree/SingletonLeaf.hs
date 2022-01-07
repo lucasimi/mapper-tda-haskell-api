@@ -1,1 +1,0 @@
-module DoubleCircleTree.SingletonLeaf where
