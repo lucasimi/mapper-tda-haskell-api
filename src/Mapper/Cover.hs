@@ -23,7 +23,7 @@ type BallTree a = BT.BallTree a
 
 type Offset = Int
 
-data WithOffset a = WithOffset a Offset
+data WithOffset a = WithOffset a {-# UNPACK #-} !Offset
 
 instance Eq (WithOffset a) where
     WithOffset _ i == WithOffset _ j = i == j
@@ -36,7 +36,9 @@ instance Hashable (WithOffset a) where
 
 type ClusterLabel = Int
 
-data WithCover a = WithCover a Offset [ClusterLabel]
+data WithCover a = WithCover a {-# UNPACK #-} !Offset [ClusterLabel]
+
+type OffsetPoint = WithOffset DataPoint
 
 addClusterLabelST :: Foldable m => STRef s Int -> VM.MVector s (WithCover a) -> m (WithOffset a) -> ST s ()
 addClusterLabelST lblRef vec ids = do
