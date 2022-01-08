@@ -50,7 +50,6 @@ executable haskell-mapper
                       -threaded
                       -fllvm
                       -fprof-auto
-                      -with-rtsopts="-p"
 
 library haskell-mapper-library
     build-depends:    base ^>=4.14.3.0, 
