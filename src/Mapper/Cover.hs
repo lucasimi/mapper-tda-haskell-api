@@ -53,7 +53,7 @@ coverST d bt sa vec = do
     lblRef <- newSTRef 0
     VM.iforM_ vec $ \i (WithCover x xoff ls) -> do
         when (null ls) $ do
-            let ids = BT.getNeighbors d (WithOffset x xoff) sa bt
+            let ids = BT.getNeighbors (WithOffset x xoff) sa bt
             unless (null ids) $ do
                 addClusterLabelST lblRef vec ids
     lbl <- readSTRef lblRef

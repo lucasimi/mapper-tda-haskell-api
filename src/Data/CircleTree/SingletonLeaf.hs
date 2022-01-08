@@ -16,19 +16,24 @@ import Data.BallTree
 import Data.Common
 import Data.QuickSelect
 
-type BallTree a = CircleTree a a
+type CT a = CircleTree a a
+
+data BallTree a = BallTree
+    { metric :: Metric a
+    , tree   :: CircleTree a a }
 
 ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
 ballTree dist (BallSearch radius) vec = runST $ do
     vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
-    ballTreeST dist vec'
+    bt <- ballTreeST dist vec'
+    return $ BallTree dist bt
 ballTree _ _ _ = undefined
 
-getNeighbors :: (Eq a, Hashable a) => Metric a -> a -> SearchAlgorithm -> BallTree a -> S.HashSet a
-getNeighbors d p (BallSearch r) bt = searchIter S.empty d p r bt
-getNeighbors _ _ _ _ = undefined 
+getNeighbors :: (Eq a, Hashable a) => a -> SearchAlgorithm -> BallTree a -> S.HashSet a
+getNeighbors p (BallSearch r) (BallTree d bt) = searchIter S.empty d p r bt
+getNeighbors _ _ _ = undefined 
 
-searchIter :: (Eq a, Hashable a) => S.HashSet a -> Metric a -> a -> Float -> BallTree a -> S.HashSet a
+searchIter :: (Eq a, Hashable a) => S.HashSet a -> Metric a -> a -> Float -> CT a -> S.HashSet a
 searchIter s _ _ _ Empty = s
 searchIter s dist p eps (Leaf x) = 
     if dist p x <= eps then S.insert x s else s
@@ -41,7 +46,7 @@ searchIter s dist p eps Node { center = c, radius = r, left = x, right = y } =
             else lSearch
     in rSearch
 
-ballTreeST :: Metric a -> VM.MVector s (WithDist a) -> ST s (BallTree a)
+ballTreeST :: Metric a -> VM.MVector s (WithDist a) -> ST s (CT a)
 ballTreeST dist vec =
     let n = VM.length vec
         m = n `div` 2
