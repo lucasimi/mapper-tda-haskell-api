@@ -5,4 +5,4 @@ import Data.QuickSelectTest
 main :: IO ()
 main = do
     internalTestSuite
-    utilsTestSuite
+    quickSelectTestSuite 
