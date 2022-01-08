@@ -12,17 +12,17 @@ import qualified Data.IntMap as IM
 import Data.CircleTree.Common
 import Data.BallTree
 
-type DataPoint = VU.Vector Scalar
+type Point = VU.Vector Scalar
 
-type Dataset = V.Vector DataPoint
+type Dataset = V.Vector Point
 
-toDataPoint :: Foldable m => m Scalar -> DataPoint
+toDataPoint :: Foldable m => m Scalar -> Point
 toDataPoint = VU.fromList . toList
 
 toDataset :: (Foldable m, Foldable n) => n (m Scalar) -> Dataset
 toDataset v = V.fromList $ map toDataPoint (toList v)
 
-euclideanMetric :: Metric DataPoint
+euclideanMetric :: Metric Point
 euclideanMetric u v = sqrt $ VU.sum $ VU.zipWith (\x y -> let z = x - y in z * z) u v
 
 data Vertex = Vertex

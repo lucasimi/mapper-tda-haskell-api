@@ -35,13 +35,13 @@ jsonOptions = defaultOptions
     , constructorTagModifier = buildTag
     }
 
-newtype Point = Point { coordinates :: [Float] }
+newtype PointRequest = Point { coordinates :: [Float] }
     deriving (Eq, Show, Read, Generic)
-instance FromJSON Point
-instance ToJSON Point
+instance FromJSON PointRequest
+instance ToJSON PointRequest
 
 newtype DatasetRequest = DatasetRequest
-    { points :: [Point] }
+    { points :: [PointRequest] }
     deriving (Eq, Show, Read, Generic)
 instance FromJSON DatasetRequest
 instance ToJSON DatasetRequest
@@ -138,7 +138,7 @@ data EdgeAdjacency = EdgeAdjacency
 instance FromJSON EdgeAdjacency
 instance ToJSON EdgeAdjacency
 
-toMetric :: MetricRequest -> Metric DataPoint 
+toMetric :: MetricRequest -> Metric Point 
 toMetric EuclideanMetricRequest u v = euclideanMetric u v
 toMetric _ _ _ = undefined
 

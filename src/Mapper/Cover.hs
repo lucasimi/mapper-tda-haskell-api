@@ -38,7 +38,7 @@ type ClusterLabel = Int
 
 data WithCover a = WithCover a {-# UNPACK #-} !Offset [ClusterLabel]
 
-type OffsetPoint = WithOffset DataPoint
+type OffsetPoint = WithOffset Point
 
 addClusterLabelST :: Foldable m => STRef s Int -> VM.MVector s (WithCover a) -> m (WithOffset a) -> ST s ()
 addClusterLabelST lblRef vec ids = do
