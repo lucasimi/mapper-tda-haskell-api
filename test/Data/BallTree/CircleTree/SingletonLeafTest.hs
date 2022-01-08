@@ -34,18 +34,18 @@ prop_SearchSingleton dist points i =
     let bt = ballTree dist (BallSearch 0.1) points
         i' = i `mod` V.length points
         c = points V.! i'
-    in (V.length points == 0) || getNeighbors dist c (BallSearch 0.1) bt == S.singleton c
+    in (V.length points == 0) || getNeighbors c (BallSearch 0.1) bt == S.singleton c
 
 prop_SearchCorrectness :: (Eq a, Hashable a) => Metric a -> V.Vector a -> Int -> Float -> Bool
 prop_SearchCorrectness dist points i r =
     let bt = ballTree dist (BallSearch r) points
         i' = i `mod` V.length points
         c = points V.! i'
-    in getNeighbors dist c (BallSearch r) bt == naiveSearch dist c r points
+    in getNeighbors c (BallSearch r) bt == naiveSearch dist c r points
 
 prop_SearchContainsCenter :: (Eq a, Hashable a) => Metric a -> V.Vector a -> Int -> Float -> Bool
 prop_SearchContainsCenter dist points idx eps =
     let bt = ballTree dist (BallSearch eps) points
         i = idx `mod` V.length points
         p = points V.! i
-    in (V.length points == 0) || (eps <= 0) || S.member p (getNeighbors dist p (BallSearch eps) bt)
+    in (V.length points == 0) || (eps <= 0) || S.member p (getNeighbors p (BallSearch eps) bt)
