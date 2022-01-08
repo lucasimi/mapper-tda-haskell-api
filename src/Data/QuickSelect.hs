@@ -7,21 +7,23 @@ import Control.Monad.ST
 import Data.STRef
 
 import qualified Data.Vector.Generic.Mutable as VGM
+import qualified Data.Vector as V
 
--- puts the element at index i in its correct position
--- returns the new index of the selected element
+pivotIterST :: (VGM.MVector v a, Ord a) => v s a -> a -> Int -> Int -> a -> ST s Int
+{-# INLINE pivotIterST #-}
+pivotIterST vec p h j xj = do
+    if xj < p
+        then do
+            VGM.unsafeSwap vec h (j + 1)
+            return $ h + 1
+        else return h
+
 pivotST :: (VGM.MVector v a, Ord a) => v s a -> Int -> ST s Int
 {-# INLINE pivotST #-}
 pivotST vec i = do
     VGM.unsafeSwap vec 0 i
-    p    <- VGM.unsafeRead vec 0
-    hRef <- newSTRef 1
-    VGM.iforM_ (VGM.unsafeDrop 1 vec) (\j xj -> do
-        when (xj < p) $ do
-            h <- readSTRef hRef
-            VGM.unsafeSwap vec h (j + 1)
-            modifySTRef' hRef (+1))
-    h    <- readSTRef hRef
+    p <- VGM.unsafeRead vec 0
+    h <- VGM.ifoldM' (pivotIterST vec p) 1 (VGM.unsafeDrop 1 vec)
     VGM.unsafeSwap vec 0 (h - 1)
     return $ h - 1
 

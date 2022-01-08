@@ -19,7 +19,7 @@ quickSelect vec i = runST $ do
 pivot :: Ord a => V.Vector a -> Int -> (Int, V.Vector a)
 pivot vec i = runST $ do
     vec' <- V.thaw vec
-    i' <- pivotST vec' i
+    i' <- pivotST' vec' i
     vec'' <- V.freeze vec'
     return (i', vec'')
 
