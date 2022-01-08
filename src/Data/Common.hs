@@ -6,7 +6,7 @@ import qualified Data.Vector.Mutable as VM
 
 import Data.BallTree
 
-data WithDist a = WithDist {-# UNPACK #-} !a {-# UNPACK #-} !Scalar
+data WithDist a = WithDist a {-# UNPACK #-} !Scalar
 
 instance Eq (WithDist a) where
     WithDist p0 d0 == WithDist p1 d1 = d0 == d1
