@@ -20,9 +20,7 @@ type LeafContainer = V.Vector
 
 type CT a = CircleTree a (LeafContainer a)
 
-data BallTree a = BallTree
-    { metric :: Metric a
-    , tree   :: CT a }
+data BallTree a = BallTree (Metric a) (CT a)
 
 ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
 ballTree dist (BallSearch r) vec = runST $ do

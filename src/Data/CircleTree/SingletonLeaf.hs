@@ -18,9 +18,7 @@ import Data.QuickSelect
 
 type CT a = CircleTree a a
 
-data BallTree a = BallTree
-    { metric :: Metric a
-    , tree   :: CircleTree a a }
+data BallTree a = BallTree (Metric a) (CT a)
 
 ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
 ballTree dist _ vec = runST $ do
