@@ -25,9 +25,9 @@ data BallTree a = BallTree
     , tree   :: CT a }
 
 ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
-ballTree dist (BallSearch radius) vec = runST $ do
+ballTree dist (BallSearch r) vec = runST $ do
     vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
-    bt <- ballTreeST dist radius vec'
+    bt <- ballTreeST dist r vec'
     return $ BallTree dist bt
 ballTree _ _ _ = undefined
 
@@ -37,8 +37,8 @@ getNeighbors _ _ _ = undefined
 
 searchIter :: (Eq a, Hashable a) => S.HashSet a -> Metric a -> a -> Float -> CT a -> S.HashSet a
 searchIter s _ _ _ Empty = s
-searchIter s dist p eps (Leaf x) =
-    let s' = S.fromList $ toList $ V.filter (\x -> dist p x <= eps) x
+searchIter s dist p eps (Leaf v) =
+    let s' = S.fromList $ toList $ V.filter (\x -> dist p x <= eps) v
     in S.union s s' 
 searchIter s dist p eps Node { center = c, radius = r, left = x, right = y } =
     let lSearch = if dist p c <= r + eps
@@ -62,14 +62,15 @@ ballTreeST dist minRadius vec =
         else do
             WithDist p _ <- VM.unsafeRead vec 0
             updateDistST vec dist
-            quickSelectST vec m
+            _ <- quickSelectST vec m
             WithDist _ r <- VM.unsafeRead vec m
+            let (vecL, vecR) = (VM.unsafeTake m vec, VM.unsafeDrop m vec)
             lft <- if r <= minRadius
                 then do
-                    vec' <- V.freeze $ VM.unsafeTake m vec
-                    return $ Leaf $ V.map (\(WithDist x d) -> x) vec'
-                else ballTreeST dist minRadius (VM.unsafeTake m vec)
-            rgt          <- ballTreeST dist minRadius (VM.unsafeDrop m vec)
+                    vec' <- V.freeze vecL
+                    return $ Leaf $ V.map (\(WithDist x _) -> x) vec'
+                else ballTreeST dist minRadius vecL
+            rgt          <- ballTreeST dist minRadius vecR
             return $ Node { center = p
                           , radius = r
                           , left   = lft

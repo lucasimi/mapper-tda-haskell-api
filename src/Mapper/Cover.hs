@@ -11,13 +11,11 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
 import qualified Data.IntMap as M
-import qualified Data.HashSet as S
 import qualified Data.IntSet as IS
 
 import Mapper.Domain
 import Data.BallTree
 import qualified Data.CircleTree.ContainerLeaf as BT
-import Data.CircleTree.Common
 
 type BallTree a = BT.BallTree a 
 
@@ -48,10 +46,10 @@ addClusterLabelST lblRef vec ids = do
         VM.unsafeWrite vec i (WithCover x xoff (lbl:lbls))
     writeSTRef lblRef (lbl + 1)
 
-coverST :: Metric (WithOffset a) -> BallTree (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> ST s Graph
-coverST d bt sa vec = do
+coverST :: BallTree (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> ST s Graph
+coverST bt sa vec = do
     lblRef <- newSTRef 0
-    VM.iforM_ vec $ \i (WithCover x xoff ls) -> do
+    VM.forM_ vec $ \(WithCover x xoff ls) -> do
         when (null ls) $ do
             let ids = BT.getNeighbors (WithOffset x xoff) sa bt
             unless (null ids) $ do
@@ -69,7 +67,7 @@ populateGraphST graph vec = do
         forM_ ls $ \l -> do
             Vertex ps es <- VM.unsafeRead graph l
             VM.unsafeWrite graph l (Vertex (IS.insert p ps) es)
-    VM.iforM_ vec $ \p (WithCover _ _ ls) -> do
+    VM.forM_ vec $ \(WithCover _ _ ls) -> do
         forM_ [(i, j) | i <- ls, j <- ls, i /= j] $ \(i, j) -> do
             Vertex p0 e0 <- VM.unsafeRead graph i
             Vertex p1 e1 <- VM.unsafeRead graph j
@@ -80,10 +78,9 @@ populateGraphST graph vec = do
 
 mapper :: Foldable m => m a -> Metric a -> SearchAlgorithm -> Graph
 mapper vec d sa = runST $ do
-    let n = length vec
-        d' = offsetMetric d
+    let d' = offsetMetric d
         vec' = V.imap (flip WithOffset) (V.fromList $ toList vec)
         vec'' = V.map (\(WithOffset x i) -> WithCover x i []) vec'
         bt = BT.ballTree d' sa vec'
     u <- V.thaw vec''
-    coverST d' bt sa u
+    coverST bt sa u

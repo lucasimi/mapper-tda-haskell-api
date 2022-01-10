@@ -47,6 +47,7 @@ executable haskell-mapper
     hs-source-dirs:   app
     default-language: Haskell2010
     ghc-options:      -O2
+                      -Wall
                       -threaded
                       -fllvm
                       -fprof-auto
@@ -68,6 +69,8 @@ library haskell-mapper-library
                       Data.CircleTree.ContainerLeaf,
                       Data.CircleTree.SingletonLeaf,
                       Data.CircleTree.Common
+    ghc-options:      -Wall
+                      -O2
 
 test-suite haskell-mapper-test
     type:             exitcode-stdio-1.0

@@ -23,11 +23,10 @@ data BallTree a = BallTree
     , tree   :: CircleTree a a }
 
 ballTree :: Foldable m => Metric a -> SearchAlgorithm -> m a -> BallTree a
-ballTree dist (BallSearch radius) vec = runST $ do
+ballTree dist _ vec = runST $ do
     vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
     bt <- ballTreeST dist vec'
     return $ BallTree dist bt
-ballTree _ _ _ = undefined
 
 getNeighbors :: (Eq a, Hashable a) => a -> SearchAlgorithm -> BallTree a -> S.HashSet a
 getNeighbors p (BallSearch r) (BallTree d bt) = searchIter S.empty d p r bt
@@ -59,10 +58,11 @@ ballTreeST dist vec =
         else do
             WithDist p _ <- VM.unsafeRead vec 0
             updateDistST vec dist
-            quickSelectST vec m
+            _ <- quickSelectST vec m
             WithDist _ r <- VM.unsafeRead vec m
-            lft          <- ballTreeST dist (VM.unsafeTake m vec)
-            rgt          <- ballTreeST dist (VM.unsafeDrop m vec)
+            let (vecL, vecR) = (VM.unsafeTake m vec, VM.unsafeDrop m vec)
+            lft          <- ballTreeST dist vecL
+            rgt          <- ballTreeST dist vecR
             return $ Node { center = p
                           , radius = r
                           , left   = lft

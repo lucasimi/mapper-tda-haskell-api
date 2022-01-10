@@ -8,10 +8,8 @@ import Data.Aeson
 import Data.Char
 import GHC.Generics
 
-import Data.Foldable
 
 import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as VU
 
 import qualified Data.IntSet as IS
 import qualified Data.IntMap as IM
@@ -26,7 +24,7 @@ buildTag "" = ""
 buildTag [c] = [Data.Char.toLower c]
 buildTag (c:cs) = case Prelude.break isUpper cs of
     ([], _) -> [Data.Char.toLower c]
-    (d, ds) -> Data.Char.toLower c:d
+    (d, _) -> Data.Char.toLower c:d
 
 jsonOptions :: Options
 jsonOptions = defaultOptions  

@@ -1,15 +1,12 @@
 module Mapper.Domain where
 
 import Data.Foldable
-import Data.Hashable
 
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as VU
-import qualified Data.Set as S
 import qualified Data.IntSet as IS
 import qualified Data.IntMap as IM
 
-import Data.CircleTree.Common
 import Data.BallTree
 
 type Point = VU.Vector Scalar

@@ -5,17 +5,17 @@ import Control.Monad.ST
 import qualified Data.Vector.Mutable as VM
 
 import Data.BallTree
+import Data.Foldable
 
 data WithDist a = WithDist a {-# UNPACK #-} !Scalar
 
 instance Eq (WithDist a) where
-    WithDist p0 d0 == WithDist p1 d1 = d0 == d1
+    WithDist _ d0 == WithDist _ d1 = d0 == d1
 
 instance Ord (WithDist a) where
-    WithDist p0 d0 <= WithDist p1 d1 = d0 <= d1
-    
+    WithDist _ d0 <= WithDist _ d1 = d0 <= d1
+
 updateDistST :: VM.MVector s (WithDist a) -> Metric a -> ST s ()
 updateDistST vec dist = do
     (WithDist p _) <- VM.unsafeRead vec 0
-    VM.iforM_ vec (\i (WithDist x _) -> do
-        VM.unsafeWrite vec i (WithDist x (dist p x)))
+    for_ [0 .. VM.length vec - 1] (VM.modify vec (\(WithDist x _) -> WithDist x (dist p x)))
