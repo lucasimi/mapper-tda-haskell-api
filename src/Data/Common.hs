@@ -17,5 +17,5 @@ instance Ord (WithDist a) where
 
 updateDistST :: VM.MVector s (WithDist a) -> Metric a -> ST s ()
 updateDistST vec dist = do
-    (WithDist p _) <- VM.unsafeRead vec 0
-    for_ [0 .. VM.length vec - 1] (VM.unsafeModify vec (\(WithDist x _) -> WithDist x (dist p x)))
+    WithDist p _ <- VM.unsafeRead vec 0
+    forM_ [0 .. VM.length vec - 1] (VM.unsafeModify vec (\(WithDist x _) -> WithDist x (dist p x)))
