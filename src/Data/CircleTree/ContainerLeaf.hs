@@ -68,8 +68,8 @@ ballTreeST dist minRadius vec s =
                     vec' <- V.freeze vecL
                     return (Leaf $ V.map (\(WithDist x _) -> x) vec', S.insert p s)
                 else ballTreeST dist minRadius vecL $! s
-            (rgt, s'')    <- ballTreeST dist minRadius vecR $! s'
+            (rgt, s'') <- ballTreeST dist minRadius vecR $! s'
             return (Node { center = p
-                          , radius = r
-                          , left   = lft
-                          , right  = rgt }, s'')
+                         , radius = r
+                         , left   = lft
+                         , right  = rgt }, s'')

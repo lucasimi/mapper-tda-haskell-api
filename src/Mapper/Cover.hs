@@ -16,7 +16,6 @@ import qualified Data.IntSet as IS
 import Mapper.Domain
 import Data.BallTree
 import qualified Data.CircleTree.ContainerLeaf as BT
-import Data.STRef
 
 type BallTree a = BT.BallTree a 
 
@@ -39,81 +38,41 @@ data WithCover a = WithCover {-# UNPACK #-} !Offset [ClusterLabel]
 
 type OffsetPoint = WithOffset Point
 
-addClusterLabelST :: Foldable m => STRef s Int -> VM.MVector s (WithCover a) -> m (WithOffset a) -> ST s ()
-addClusterLabelST lblRef vec ids = do
-    lbl <- readSTRef lblRef
-    forM_ ids $ \(WithOffset _ i) -> do
-        VM.unsafeModify vec (\(WithCover x ls) -> WithCover x (lbl:ls)) i
-        --WithCover xoff lbls <- VM.unsafeRead vec i
-        --VM.unsafeWrite vec i (WithCover xoff (lbl:lbls))
-    writeSTRef lblRef (lbl + 1)
+updateLabel :: BallTree (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> WithOffset a -> Int -> ST s Int
+{-# INLINE updateLabel #-}
+updateLabel bt sa vec wo@(WithOffset _ xoff) lbl = do
+    WithCover _ xs <- VM.unsafeRead vec xoff
+    if null xs
+        then do
+            let ids = BT.getNeighbors wo sa bt
+            forM_ ids $ \(WithOffset _ i) -> do
+                VM.unsafeModify vec (\(WithCover x ls) -> WithCover x (lbl:ls)) i
+            return $ lbl + 1
+        else return lbl
 
 coverST :: BallTree (WithOffset a) -> S.HashSet (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> ST s Graph
 coverST bt s sa vec = do
-    lblRef <- newSTRef 0
-    forM_ s $ \(WithOffset x xoff) -> do
-        WithCover _ ls <- VM.unsafeRead vec xoff
-        when (null ls) $ do
-            let ids = BT.getNeighbors (WithOffset x xoff) sa bt
-            unless (null ids) $ do
-                addClusterLabelST lblRef vec ids
-    lbl <- readSTRef lblRef
+    lbl <- foldrM (updateLabel bt sa vec) 0 s
     graph <- VM.generate lbl (const (Vertex IS.empty M.empty))
     populateGraphST graph vec
-
-{--
-coverST' bt s sa vec = do
-    forM_ (zip (toList s) [0..]) $  \(wo@(WithOffset _ xi), l) -> do
-        WithCover _ xs <- VM.unsafeRead vec xi
-        when (null xs) $ do
-            let ids = BT.getNeighbors wo sa bt
-            unless (null ids) $ do
-                forM_ ids $ \(WithOffset _ xoff) -> do
-                    VM.unsafeModify vec (\(WithCover i ls) -> WithCover i (l:ls)) xoff
---}
-
-
-
-coverPoint :: Int -> BallTree (WithOffset a) -> WithOffset a -> SearchAlgorithm -> V.Vector (WithCover a) -> V.Vector (WithCover a)
-coverPoint lbl bt wo sa v =
-    let ids = BT.getNeighbors wo sa bt
-        ups = [(i, 0) | WithOffset _ i <- S.toList ids]
-    in V.accum (\(WithCover i lbls) _ -> WithCover i (lbl:lbls)) v ups 
-
-
-buildCoverIter :: Int -> BallTree (WithOffset a) -> [WithOffset a] -> SearchAlgorithm -> V.Vector (WithCover a) -> V.Vector (WithCover a)
-buildCoverIter _ _ [] _ v = v
-buildCoverIter l bt (c@(WithOffset _ xoff):cs) sa v =
-    let v' = buildCoverIter l bt cs sa v
-        WithCover _ ls = v' V.! xoff 
-    in if null ls
-        then coverPoint (l + 1) bt c sa v'
-        else v'
-
-
-
-buildCover :: BallTree (WithOffset a) -> [WithOffset a] -> SearchAlgorithm -> V.Vector (WithCover a) -> V.Vector (WithCover a)
-buildCover = buildCoverIter 0
-
-
-
 
 offsetMetric :: Metric a -> Metric (WithOffset a)
 offsetMetric dist (WithOffset x _) (WithOffset y _) = dist x y
 
 populateGraphST :: VM.MVector s Vertex -> VM.MVector s (WithCover a) -> ST s Graph
+{-# INLINE populateGraphST #-}
 populateGraphST graph vec = do
     VM.iforM_ vec $ \p (WithCover _ ls) -> do
         forM_ ls $ \l -> do
-            Vertex ps es <- VM.unsafeRead graph l
-            VM.unsafeWrite graph l (Vertex (IS.insert p ps) es)
+            VM.unsafeModify graph (\(Vertex ps es) -> Vertex (IS.insert p ps) es) l
     VM.forM_ vec $ \(WithCover _ ls) -> do
-        forM_ [(i, j) | i <- ls, j <- ls, i /= j] $ \(i, j) -> do
+        forM_ ls $ \i -> do
             Vertex p0 e0 <- VM.unsafeRead graph i
-            Vertex p1 e1 <- VM.unsafeRead graph j
-            let e = edge p0 p1
-            VM.unsafeWrite graph i (Vertex p0 (M.insert j e e0))
-            VM.unsafeWrite graph j (Vertex p1 (M.insert i e e1))
+            forM_ [j | j <- ls, j > i] $ \j -> do
+                Vertex p1 e1 <- VM.unsafeRead graph j
+                let e = edge p0 p1
+                VM.unsafeWrite graph i (Vertex p0 (M.insert j e e0))
+                VM.unsafeWrite graph j (Vertex p1 (M.insert i e e1))
     V.freeze graph
 
 mapper :: (Foldable m) => m a -> Metric a -> SearchAlgorithm -> Graph
