@@ -50,8 +50,8 @@ updateLabel bt sa vec wo@(WithOffset _ xoff) lbl = do
             return $ lbl + 1
         else return lbl
 
-coverST :: BallTree (WithOffset a) -> S.HashSet (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> ST s Graph
-coverST bt s sa vec = do
+coverST :: BallTree (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> S.HashSet (WithOffset a) -> ST s Graph
+coverST bt sa vec s = do
     lbl <- foldrM (updateLabel bt sa vec) 0 s
     graph <- VM.generate lbl (const (Vertex IS.empty M.empty))
     populateGraphST graph vec
@@ -82,4 +82,4 @@ mapper vec d sa = runST $ do
         vec'' = V.map (\(WithOffset _ i) -> WithCover i []) vec'
         (bt, s) = BT.ballTree d' sa vec'
     u <- V.thaw vec''
-    coverST bt s sa u
+    coverST bt sa u s

@@ -8,12 +8,11 @@ import qualified Data.Vector.Generic.Mutable as VGM
 
 pivotIterST :: (VGM.MVector v a, Ord a) => v s a -> a -> Int -> Int -> a -> ST s Int
 {-# INLINE pivotIterST #-}
-pivotIterST vec p h j xj = do
-    if xj < p
-        then do
-            VGM.unsafeSwap vec h (j + 1)
-            return $ h + 1
-        else return h
+pivotIterST vec p h j xj = if xj < p
+    then do
+        VGM.unsafeSwap vec h (j + 1)
+        return $ h + 1
+    else return h
 
 pivotST :: (VGM.MVector v a, Ord a) => v s a -> Int -> ST s Int
 {-# INLINE pivotST #-}
