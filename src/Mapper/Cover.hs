@@ -1,7 +1,7 @@
 module Mapper.Cover where
 
-import Control.Monad    
-import Control.Monad.ST 
+import Control.Monad
+import Control.Monad.ST
 
 import Data.Foldable
 import Data.Hashable
@@ -15,9 +15,9 @@ import qualified Data.IntSet as IS
 
 import Mapper.Domain
 import Data.BallTree
-import qualified Data.CircleTree.ContainerLeaf as BT
+import qualified Data.CircleTree.IntTree as BT
 
-type BallTree a = BT.BallTree a 
+type BallTree a = BT.BallTree a
 
 type Offset = Int
 
@@ -38,19 +38,19 @@ data WithCover a = WithCover {-# UNPACK #-} !Offset [ClusterLabel]
 
 type OffsetPoint = WithOffset Point
 
-updateLabel :: BallTree (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> WithOffset a -> Int -> ST s Int
+updateLabel :: BallTree Offset -> SearchAlgorithm -> VM.MVector s (WithCover a) -> Offset -> Int -> ST s Int
 {-# INLINE updateLabel #-}
-updateLabel bt sa vec wo@(WithOffset _ xoff) lbl = do
+updateLabel bt sa vec xoff lbl = do
     WithCover _ xs <- VM.unsafeRead vec xoff
     if null xs
         then do
-            let ids = BT.getNeighbors wo sa bt
-            forM_ ids $ \(WithOffset _ i) -> do
+            let ids = BT.getNeighbors xoff sa bt
+            forM_ ids $ \i -> do
                 VM.unsafeModify vec (\(WithCover x ls) -> WithCover x (lbl:ls)) i
             return $ lbl + 1
         else return lbl
 
-coverST :: BallTree (WithOffset a) -> SearchAlgorithm -> VM.MVector s (WithCover a) -> S.HashSet (WithOffset a) -> ST s Graph
+coverST :: BallTree Offset -> SearchAlgorithm -> VM.MVector s (WithCover a) -> S.HashSet Offset -> ST s Graph
 coverST bt sa vec s = do
     lbl <- foldrM (updateLabel bt sa vec) 0 s
     graph <- VM.generate lbl (const (Vertex IS.empty M.empty))
@@ -77,9 +77,10 @@ populateGraphST graph vec = do
 
 mapper :: (Foldable m) => m a -> Metric a -> SearchAlgorithm -> Graph
 mapper vec d sa = runST $ do
-    let d' = offsetMetric d
-        vec' = V.imap (flip WithOffset) (V.fromList $ toList vec)
-        vec'' = V.map (\(WithOffset _ i) -> WithCover i []) vec'
-        (bt, s) = BT.ballTree d' sa vec'
-    u <- V.thaw vec''
+    let v = V.fromList $ toList vec
+        offDist i j = d (v V.! i) (v V.! j)
+        v' = V.generate (V.length v) id
+        vec' = V.generate (V.length v) (`WithCover` [])
+        (bt, s) = BT.ballTree offDist sa v'
+    u <- V.thaw vec'
     coverST bt sa u s
