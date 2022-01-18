@@ -4,7 +4,6 @@ import Control.Monad
 import Control.Monad.ST
 
 import Data.Foldable
-import Data.Hashable
 
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
@@ -15,30 +14,17 @@ import qualified Data.IntSet as IS
 
 import Mapper.Domain
 import Data.BallTree
-import qualified Data.CircleTree.IntTree as BT
+import qualified Data.CircleTree.IntTreeNew as BT
 
-type BallTree a = BT.BallTree a
+type BallTree = BT.BallTree
 
 type Offset = Int
-
-data WithOffset a = WithOffset a {-# UNPACK #-} !Offset
-
-instance Eq (WithOffset a) where
-    WithOffset _ i == WithOffset _ j = i == j
-
-instance Ord (WithOffset a) where
-    WithOffset _ i <= WithOffset _ j = i <= j
-
-instance Hashable (WithOffset a) where
-    hashWithSalt _ (WithOffset _ i) = i
 
 type ClusterLabel = Int
 
 data WithCover a = WithCover {-# UNPACK #-} !Offset [ClusterLabel]
 
-type OffsetPoint = WithOffset Point
-
-updateLabel :: BallTree Offset -> SearchAlgorithm -> VM.MVector s (WithCover a) -> Offset -> Int -> ST s Int
+updateLabel :: BallTree -> SearchAlgorithm -> VM.MVector s (WithCover a) -> Offset -> Int -> ST s Int
 {-# INLINE updateLabel #-}
 updateLabel bt sa vec xoff lbl = do
     WithCover _ xs <- VM.unsafeRead vec xoff
@@ -50,14 +36,11 @@ updateLabel bt sa vec xoff lbl = do
             return $ lbl + 1
         else return lbl
 
-coverST :: BallTree Offset -> SearchAlgorithm -> VM.MVector s (WithCover a) -> S.HashSet Offset -> ST s Graph
+coverST :: BallTree -> SearchAlgorithm -> VM.MVector s (WithCover a) -> S.HashSet Offset -> ST s Graph
 coverST bt sa vec s = do
     lbl <- foldrM (updateLabel bt sa vec) 0 s
     graph <- VM.generate lbl (const (Vertex IS.empty M.empty))
     populateGraphST graph vec
-
-offsetMetric :: Metric a -> Metric (WithOffset a)
-offsetMetric dist (WithOffset x _) (WithOffset y _) = dist x y
 
 populateGraphST :: VM.MVector s Vertex -> VM.MVector s (WithCover a) -> ST s Graph
 {-# INLINE populateGraphST #-}

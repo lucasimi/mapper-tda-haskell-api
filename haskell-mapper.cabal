@@ -67,6 +67,7 @@ library haskell-mapper-library
                       Data.Common,
                       Data.QuickSelect,
                       Data.CircleTree.IntTree,
+                      Data.CircleTree.IntTreeNew,
                       Data.CircleTree.ContainerLeaf,
                       Data.CircleTree.SingletonLeaf,
                       Data.CircleTree.Common
