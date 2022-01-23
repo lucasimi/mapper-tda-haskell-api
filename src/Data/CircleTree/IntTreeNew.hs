@@ -41,46 +41,50 @@ ballTree dist (BallSearch r) vec = runST $ do
 ballTree _ _ _ = undefined
 
 getNeighbors :: Idx -> SearchAlgorithm -> BallTree -> S.HashSet Idx
-getNeighbors p (BallSearch r) (BT d bt) = searchIter d p r bt $! S.empty
+getNeighbors p (BallSearch r) (BT d bt) = search d p r bt $! S.empty
 getNeighbors _ _ _ = undefined
 
-searchIter :: Metric Idx -> Idx -> Scalar -> IntTree -> S.HashSet Idx -> S.HashSet Idx
-searchIter _ _ _ Empty s = s
-searchIter dist p eps (Leaf v) s =
-    let s' = S.fromList $ VU.toList $ VU.filter (\x -> dist p x <= eps) v
-    in S.union s s'
-searchIter dist p eps Node { center = c, radius = r, left = x, right = y } s =
-    let lSearch = if dist p c <= r + eps
-            then searchIter dist p eps x $! s
-            else s
-        rSearch = if dist p c + eps > r
-            then searchIter dist p eps y $! lSearch
-            else lSearch
-    in rSearch
+search :: Metric Idx -> Idx -> Scalar -> IntTree -> S.HashSet Idx -> S.HashSet Idx
+search dist p eps = searchIter
+    where
+        searchIter Empty s = s
+        searchIter (Leaf v) s =
+            let s' = S.fromList $ VU.toList $ VU.filter (\x -> dist p x <= eps) v
+            in S.union s s'
+        searchIter Node { center = c, radius = r, left = x, right = y } s =
+            let lSearch = if dist p c <= r + eps
+                    then searchIter x $! s
+                    else s
+                rSearch = if dist p c + eps > r
+                    then searchIter y $! lSearch
+                    else lSearch
+            in rSearch
 
 ballTreeST :: Metric Idx -> Scalar -> VUM.MVector s IdxOrd -> S.HashSet Idx -> ST s (IntTree, S.HashSet Idx)
-ballTreeST dist minRadius vec s =
-    let n = VUM.length vec
-        m = n `div` 2
-    in if n == 0
-        then return (Empty, s)
-    else if n == 1
-        then do
-            (_, x) <- VUM.unsafeRead vec 0
-            return (Leaf $ VU.singleton x, S.insert x s)
-        else do
-            (_, p) <- VUM.unsafeRead vec 0
-            updateDistST vec dist
-            _ <- quickSelectST vec m
-            (r, _) <- VUM.unsafeRead vec m
-            let (vecL, vecR) = (VUM.unsafeTake m vec, VUM.unsafeDrop m vec)
-            (lft, s') <- if r <= minRadius
+ballTreeST dist minRadius = ballTreeIterST
+    where
+        ballTreeIterST vec s =
+            let n = VUM.length vec
+                m = n `div` 2
+            in if n == 0
+                then return (Empty, s)
+            else if n == 1
                 then do
-                    vec' <- VU.freeze vecL
-                    return (Leaf $ VU.convert $ VU.map snd vec', S.insert p s)
-                else ballTreeST dist minRadius vecL $! s
-            (rgt, s'') <- ballTreeST dist minRadius vecR $! s'
-            return (Node { center = p
-                         , radius = r
-                         , left   = lft
-                         , right  = rgt }, s'')
+                    (_, x) <- VUM.unsafeRead vec 0
+                    return (Leaf $ VU.singleton x, S.insert x s)
+                else do
+                    (_, p) <- VUM.unsafeRead vec 0
+                    updateDistST vec dist
+                    _ <- quickSelectST vec m
+                    (r, _) <- VUM.unsafeRead vec m
+                    let (vecL, vecR) = (VUM.unsafeTake m vec, VUM.unsafeDrop m vec)
+                    (lft, s') <- if r <= minRadius
+                        then do
+                            vec' <- VU.freeze vecL
+                            return (Leaf $ VU.convert $ VU.map snd vec', S.insert p s)
+                        else ballTreeIterST vecL $! s
+                    (rgt, s'') <- ballTreeIterST vecR $! s'
+                    return (Node { center = p
+                                , radius = r
+                                , left   = lft
+                                , right  = rgt }, s'')
