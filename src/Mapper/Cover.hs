@@ -14,9 +14,9 @@ import qualified Data.IntSet as IS
 
 import Mapper.Domain
 import Data.BallTree
-import qualified Data.CircleTree.IntTreeNew as BT
+import qualified Data.CircleTree.IntTree as CT
 
-type BallTree = BT.BallTree
+type CircleTree = CT.CircleTree
 
 type Offset = Int
 
@@ -24,19 +24,19 @@ type ClusterLabel = Int
 
 data WithCover a = WithCover {-# UNPACK #-} !Offset [ClusterLabel]
 
-updateLabel :: BallTree -> SearchAlgorithm -> VM.MVector s (WithCover a) -> Offset -> Int -> ST s Int
+updateLabel :: CircleTree -> SearchAlgorithm -> VM.MVector s (WithCover a) -> Offset -> Int -> ST s Int
 {-# INLINE updateLabel #-}
 updateLabel bt sa vec xoff lbl = do
     WithCover _ xs <- VM.unsafeRead vec xoff
     if null xs
         then do
-            let ids = BT.getNeighbors xoff sa bt
+            let ids = CT.getNeighbors xoff sa bt
             forM_ ids $ \i -> do
                 VM.unsafeModify vec (\(WithCover x ls) -> WithCover x (lbl:ls)) i
             return $ lbl + 1
         else return lbl
 
-coverST :: BallTree -> SearchAlgorithm -> VM.MVector s (WithCover a) -> S.HashSet Offset -> ST s Graph
+coverST :: CircleTree -> SearchAlgorithm -> VM.MVector s (WithCover a) -> S.HashSet Offset -> ST s Graph
 coverST bt sa vec s = do
     lbl <- foldrM (updateLabel bt sa vec) 0 s
     graph <- VM.generate lbl (const (Vertex IS.empty M.empty))
@@ -61,9 +61,9 @@ populateGraphST graph vec = do
 mapper :: (Foldable m) => m a -> Metric a -> SearchAlgorithm -> Graph
 mapper vec d sa = runST $ do
     let v = V.fromList $ toList vec
-        offDist i j = d (v V.! i) (v V.! j)
+        offDist i j = d (V.unsafeIndex v i) (V.unsafeIndex v j)
         v' = V.generate (V.length v) id
         vec' = V.generate (V.length v) (`WithCover` [])
-        (bt, s) = BT.ballTree offDist sa v'
+        (bt, s) = CT.circleTree offDist sa v'
     u <- V.thaw vec'
     coverST bt sa u s

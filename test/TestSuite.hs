@@ -1,8 +1,8 @@
 module Main where
-import Data.BallTree.CircleTree.SingletonLeafTest
+import Data.CircleTreeTest
 import Data.QuickSelectTest
 
 main :: IO ()
 main = do
-    internalTestSuite
+    circleTreeTestSuite
     quickSelectTestSuite 

@@ -1,6 +1,6 @@
-module Data.CircleTree.ContainerLeaf
+module Data.CircleTreeOld
     ( BallTree
-    , ballTree
+    , circleTree
     , getNeighbors ) where
 
 import Control.Monad.ST
@@ -11,29 +11,33 @@ import qualified Data.HashSet as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
-import Data.CircleTree.Common
 import Data.Common
 import Data.QuickSelect
 import Data.BallTree
 
-type LeafContainer = V.Vector
+data CircleTree a
+    = Empty
+    | Leaf (V.Vector a)
+    | Node { center :: a
+           , radius :: {-# UNPACK #-} !Scalar
+           , left   :: CircleTree a
+           , right  :: CircleTree a
+    } deriving Show
 
-type CT a = CircleTree a (LeafContainer a)
+data BallTree a = BallTree (Metric a) (CircleTree a)
 
-data BallTree a = BallTree (Metric a) (CT a)
-
-ballTree :: (Foldable m, Eq a, Hashable a) => Metric a -> SearchAlgorithm -> m a -> (BallTree a, S.HashSet a)
-ballTree dist (BallSearch r) vec = runST $ do
+circleTree :: (Foldable m, Eq a, Hashable a) => Metric a -> SearchAlgorithm -> m a -> (BallTree a, S.HashSet a)
+circleTree dist (BallSearch r) vec = runST $ do
     vec' <- V.thaw $ V.fromList $ map (`WithDist` 0.0) (toList vec)
     (bt, s) <- ballTreeST dist r vec' S.empty 
     return (BallTree dist bt, s)
-ballTree _ _ _ = undefined
+circleTree _ _ _ = undefined
 
 getNeighbors :: (Eq a, Hashable a) => a -> SearchAlgorithm -> BallTree a -> S.HashSet a
 getNeighbors p (BallSearch r) (BallTree d bt) = searchIter d p r bt $! S.empty
 getNeighbors _ _ _ = undefined 
 
-searchIter :: (Eq a, Hashable a) => Metric a -> a -> Float -> CT a -> S.HashSet a -> S.HashSet a
+searchIter :: (Eq a, Hashable a) => Metric a -> a -> Float -> CircleTree a -> S.HashSet a -> S.HashSet a
 searchIter _ _ _ Empty s = s
 searchIter dist p eps (Leaf v) s =
     let s' = S.fromList $ toList $ V.filter (\x -> dist p x <= eps) v
@@ -47,7 +51,7 @@ searchIter dist p eps Node { center = c, radius = r, left = x, right = y } s =
             else lSearch
     in rSearch
 
-ballTreeST :: (Eq a, Hashable a) => Metric a -> Float -> VM.MVector s (WithDist a) -> S.HashSet a -> ST s (CT a, S.HashSet a)
+ballTreeST :: (Eq a, Hashable a) => Metric a -> Float -> VM.MVector s (WithDist a) -> S.HashSet a -> ST s (CircleTree a, S.HashSet a)
 ballTreeST dist minRadius vec s =
     let n = VM.length vec
         m = n `div` 2

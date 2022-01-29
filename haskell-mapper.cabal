@@ -68,14 +68,9 @@ library haskell-mapper-library
                       Data.Common,
                       Data.QuickSelect,
                       Data.CircleTree.IntTree,
-                      Data.CircleTree.IntTreeNew,
-                      Data.CircleTree.IntTreeLazy,
-                      Data.CircleTree.ContainerLeaf,
-                      Data.CircleTree.SingletonLeaf,
-                      Data.CircleTree.Common
+                      Data.CircleTree
     ghc-options:      -Wall
                       -O2
-                      -threaded
                       -fllvm
                       -fprof-auto
 
@@ -92,5 +87,5 @@ test-suite haskell-mapper-test
                       quickcheck-instances,
                       haskell-mapper-library
     default-language: Haskell2010
-    other-modules:    Data.BallTree.CircleTree.SingletonLeafTest,
+    other-modules:    Data.CircleTreeTest,
                       Data.QuickSelectTest
