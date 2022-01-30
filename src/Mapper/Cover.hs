@@ -14,7 +14,7 @@ import qualified Data.IntSet as IS
 
 import Mapper.Domain
 import Data.BallTree
-import qualified Data.CircleTree.IntTree as CT
+import qualified Data.BallTree.CircleTree.IntTree as CT
 
 type CircleTree = CT.CircleTree
 

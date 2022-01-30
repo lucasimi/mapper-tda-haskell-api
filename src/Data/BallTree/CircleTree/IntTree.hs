@@ -1,4 +1,4 @@
-module Data.CircleTree.IntTree
+module Data.BallTree.CircleTree.IntTree
     ( IntTree ( Empty, Leaf, Node )
     , CircleTree ( CircleTree )
     , circleTree
@@ -37,34 +37,34 @@ data CircleTree = CircleTree (Metric Idx) IntTree
 circleTree :: Foldable m => Metric Idx -> SearchAlgorithm -> m Idx -> (CircleTree, S.HashSet Idx)
 circleTree dist (BallSearch r) vec = runST $ do
     vec' <- VU.thaw $ VU.fromList $ map (\x -> (0.0, x)) (toList vec)
-    (bt, s) <- ballTreeST dist r vec' S.empty
+    (bt, s) <- circleTreeST dist r vec' S.empty
     return (CircleTree dist bt, s)
 circleTree _ _ _ = undefined
 
 getNeighbors :: Idx -> SearchAlgorithm -> CircleTree -> S.HashSet Idx
-getNeighbors p (BallSearch r) (CircleTree d bt) = search d p r bt $! S.empty
+getNeighbors p (BallSearch r) (CircleTree d bt) = ballSearch d p r bt $! S.empty
 getNeighbors _ _ _ = undefined
 
-search :: Metric Idx -> Idx -> Scalar -> IntTree -> S.HashSet Idx -> S.HashSet Idx
-search dist p eps = searchIter
+ballSearch :: Metric Idx -> Idx -> Scalar -> IntTree -> S.HashSet Idx -> S.HashSet Idx
+ballSearch dist p eps = ballSearchIter
     where
-        searchIter Empty s = s
-        searchIter (Leaf v) s =
+        ballSearchIter Empty s = s
+        ballSearchIter (Leaf v) s =
             let s' = S.fromList $ VU.toList $ VU.filter (\x -> dist p x <= eps) v
             in S.union s s'
-        searchIter Node { center = c, radius = r, left = x, right = y } s =
+        ballSearchIter Node { center = c, radius = r, left = x, right = y } s =
             let lSearch = if dist p c <= r + eps
-                    then searchIter x $! s
+                    then ballSearchIter x $! s
                     else s
                 rSearch = if dist p c + eps > r
-                    then searchIter y $! lSearch
+                    then ballSearchIter y $! lSearch
                     else lSearch
             in rSearch
 
-ballTreeST :: Metric Idx -> Scalar -> VUM.MVector s IdxOrd -> S.HashSet Idx -> ST s (IntTree, S.HashSet Idx)
-ballTreeST dist minRadius = ballTreeIterST
+circleTreeST :: Metric Idx -> Scalar -> VUM.MVector s IdxOrd -> S.HashSet Idx -> ST s (IntTree, S.HashSet Idx)
+circleTreeST dist minRadius = circleTreeIterST
     where
-        ballTreeIterST vec s =
+        circleTreeIterST vec s =
             let n = VUM.length vec
                 m = n `div` 2
             in if n == 0
@@ -83,8 +83,8 @@ ballTreeST dist minRadius = ballTreeIterST
                         then do
                             vec' <- VU.freeze vecL
                             return (Leaf $ VU.convert $ VU.map snd vec', S.insert p s)
-                        else ballTreeIterST vecL $! s
-                    (rgt, s'') <- ballTreeIterST vecR $! s'
+                        else circleTreeIterST vecL $! s
+                    (rgt, s'') <- circleTreeIterST vecR $! s'
                     return (Node { center = p
                                 , radius = r
                                 , left   = lft

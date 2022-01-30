@@ -1,4 +1,4 @@
-module Data.CircleTree
+module Data.BallTree.CircleTree
     ( BallTree
     , circleTree
     , getNeighbors ) where
@@ -12,7 +12,7 @@ import qualified Data.Vector.Unboxed as VU
 
 import Data.BallTree
 
-import qualified Data.CircleTree.IntTree as IT
+import qualified Data.BallTree.CircleTree.IntTree as IT
 
 type Idx = Int 
 

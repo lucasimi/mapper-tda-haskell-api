@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Data.BallTree where
 
 type Scalar = Float

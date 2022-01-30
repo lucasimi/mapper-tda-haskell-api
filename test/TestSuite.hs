@@ -1,5 +1,5 @@
 module Main where
-import Data.CircleTreeTest
+import Data.BallTree.CircleTreeTest
 import Data.QuickSelectTest
 
 main :: IO ()

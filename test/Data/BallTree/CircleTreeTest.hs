@@ -1,4 +1,4 @@
-module Data.CircleTreeTest where
+module Data.BallTree.CircleTreeTest where
 
 import Test.QuickCheck
 import Test.QuickCheck.Instances.Vector
@@ -12,8 +12,7 @@ import qualified Data.HashSet as S
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
-import Mapper.Domain
-import Data.CircleTreeNew
+import Data.BallTree.CircleTree
 import Data.BallTree
 
 circleTreeTestSuite :: IO ()
