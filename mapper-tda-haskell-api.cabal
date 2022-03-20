@@ -1,12 +1,12 @@
 cabal-version:      2.4
-name:               haskell-mapper
+name:               mapper-tda-haskell-api
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
--- synopsis:
+synopsis: An API for the Mapper Algorithm
 
 -- A longer description of the package.
--- description:
+description: This package provides a library and an executable exposing an API for computing the Mapper Algorithm from TDA
 
 -- A URL where users can report bugs.
 -- bug-reports:
@@ -21,7 +21,7 @@ maintainer:         lucasimi90@gmail.com
 -- category:
 extra-source-files: CHANGELOG.md
 
-executable haskell-mapper
+executable mapper-tda-haskell-api
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
@@ -34,7 +34,7 @@ executable haskell-mapper
     build-depends:    base ^>=4.14.3.0, 
                       containers,
                       vector,
-                      haskell-mapper-library,
+                      mapper-tda,
                       servant,
                       servant-server,
                       aeson,
@@ -52,7 +52,7 @@ executable haskell-mapper
                       -fllvm
                       -fprof-auto
 
-library haskell-mapper-library
+library mapper-tda
     build-depends:    base ^>=4.14.3.0, 
                       containers,
                       hashable,
@@ -74,7 +74,7 @@ library haskell-mapper-library
                       -fllvm
                       -fprof-auto
 
-test-suite haskell-mapper-test
+test-suite mapper-tda-haskell-test
     type:             exitcode-stdio-1.0
     main-is:          TestSuite.hs
     hs-source-dirs:   test
@@ -85,7 +85,7 @@ test-suite haskell-mapper-test
                       vector,
                       QuickCheck,
                       quickcheck-instances,
-                      haskell-mapper-library
+                      mapper-tda
     default-language: Haskell2010
     other-modules:    Data.BallTree.CircleTreeTest,
                       Data.QuickSelectTest
